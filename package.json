@@ -1,0 +1,28 @@
+{
+  "name": "skillbridge-ai",
+  "version": "1.0.0",
+  "description": "SkillBridge AI - Academia-Industry Collaboration Platform for SIH 2026 (SIH26044)",
+  "private": true,
+  "workspaces": [
+    "backend",
+    "frontend"
+  ],
+  "scripts": {
+    "dev:backend": "cd backend && npm run dev",
+    "dev:frontend": "cd frontend && npm run dev",
+    "dev:ai": "cd ai-service && python run.py",
+    "build:frontend": "cd frontend && npm run build",
+    "install:all": "npm install && cd backend && npm install && cd ../frontend && npm install"
+  },
+  "keywords": [
+    "sih2026",
+    "mern",
+    "fastapi",
+    "smart-automation",
+    "skill-mapping",
+    "placements"
+  ],
+  "author": "SkillBridge AI Team",
+  "license": "ISC"
+}
+
