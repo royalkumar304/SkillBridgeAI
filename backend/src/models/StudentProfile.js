@@ -39,6 +39,16 @@ const certificationItemSchema = new mongoose.Schema(
   { _id: false }
 );
 
+const experienceItemSchema = new mongoose.Schema(
+  {
+    title: { type: String, required: true, trim: true },
+    company: { type: String, required: true, trim: true },
+    duration: { type: String, trim: true },
+    description: { type: String, trim: true },
+  },
+  { _id: false }
+);
+
 const studentProfileSchema = new mongoose.Schema(
   {
     userId: {
@@ -48,6 +58,8 @@ const studentProfileSchema = new mongoose.Schema(
       unique: true,
       index: true,
     },
+    bio: { type: String, default: '', trim: true },
+    phone: { type: String, default: '', trim: true },
     university: {
       type: String,
       required: [true, 'University name is required'],
@@ -85,6 +97,13 @@ const studentProfileSchema = new mongoose.Schema(
     skills: [skillItemSchema],
     projects: [projectItemSchema],
     certifications: [certificationItemSchema],
+    experience: [experienceItemSchema],
+    resumeId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Resume',
+      default: null,
+    },
+    resumeUrl: { type: String, default: '', trim: true },
     githubUrl: { type: String, default: '', trim: true },
     linkedinUrl: { type: String, default: '', trim: true },
   },

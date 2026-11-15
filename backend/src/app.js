@@ -24,9 +24,16 @@ if (process.env.NODE_ENV !== 'test') {
   app.use(morgan('dev'));
 }
 
+const studentRoutes = require('./routes/studentRoutes');
+const jobRoutes = require('./routes/jobRoutes');
+const applicationRoutes = require('./routes/applicationRoutes');
+
 // API v1 Routes
 app.use('/api/v1', healthRoutes);
 app.use('/api/v1/auth', authRoutes);
+app.use('/api/v1/students', studentRoutes);
+app.use('/api/v1/jobs', jobRoutes);
+app.use('/api/v1/applications', applicationRoutes);
 
 // Root route for quick verification
 app.get('/', (req, res) => {

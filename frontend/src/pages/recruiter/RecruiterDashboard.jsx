@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import RecruiterLayout from '../../layouts/RecruiterLayout';
 import { Building2, Plus, Users, CheckCircle, Clock, XCircle, Search, Filter } from 'lucide-react';
 
@@ -46,7 +47,7 @@ export default function RecruiterDashboard() {
           <div>
             <div className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full bg-indigo-50 text-indigo-700 text-xs font-semibold mb-2">
               <Building2 className="w-3.5 h-3.5" />
-              <span>ABC Technologies Recruiter Console</span>
+              <span>SkillBridge Industry Recruiter Console</span>
             </div>
             <h1 className="text-2xl font-bold text-slate-900">Applicant Pipeline & Job Management</h1>
             <p className="text-xs text-slate-500 mt-1">
@@ -54,10 +55,21 @@ export default function RecruiterDashboard() {
             </p>
           </div>
 
-          <button className="px-4 py-2.5 bg-brand-900 hover:bg-brand-800 text-white rounded-xl text-xs font-semibold inline-flex items-center space-x-1.5 transition-colors shadow-sm">
-            <Plus className="w-4 h-4" />
-            <span>Post New Internship</span>
-          </button>
+          <div className="flex gap-2">
+            <Link
+              to="/recruiter/jobs"
+              className="px-4 py-2.5 border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-xl text-xs font-semibold inline-flex items-center space-x-1.5 transition-colors shadow-sm"
+            >
+              <span>Manage Openings</span>
+            </Link>
+            <Link
+              to="/recruiter/jobs/create"
+              className="px-4 py-2.5 bg-[#1e3a5f] hover:bg-[#16304f] text-white rounded-xl text-xs font-semibold inline-flex items-center space-x-1.5 transition-colors shadow-sm"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Post New Opportunity</span>
+            </Link>
+          </div>
         </div>
 
         {/* Quick Metric Stats */}

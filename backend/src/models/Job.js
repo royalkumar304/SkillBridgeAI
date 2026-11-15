@@ -23,8 +23,13 @@ const jobSchema = new mongoose.Schema(
     companyId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Company',
-      required: true,
+      required: false,
       index: true,
+    },
+    companyName: {
+      type: String,
+      trim: true,
+      default: 'SkillBridge Partner',
     },
     title: {
       type: String,
@@ -57,6 +62,11 @@ const jobSchema = new mongoose.Schema(
         message: 'A job must specify at least one required skill',
       },
     },
+    preferredSkills: [
+      {
+        name: { type: String, trim: true },
+      },
+    ],
     minCGPA: {
       type: Number,
       min: 0,
@@ -64,6 +74,8 @@ const jobSchema = new mongoose.Schema(
       default: 6.0,
     },
     allowedBranches: [{ type: String, trim: true }],
+    eligibleDegrees: [{ type: String, trim: true }],
+    eligibleGraduationYears: [{ type: Number }],
     deadline: {
       type: Date,
       required: [true, 'Application deadline is required'],
@@ -71,8 +83,13 @@ const jobSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ['active', 'closed', 'draft'],
+      enum: ['active', 'closed', 'draft', 'published', 'DRAFT', 'PUBLISHED', 'CLOSED', 'ACTIVE'],
       default: 'active',
+      index: true,
+    },
+    postedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
       index: true,
     },
   },

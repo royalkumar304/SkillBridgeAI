@@ -91,4 +91,127 @@ export const api = {
     });
     return res.json();
   },
+
+  // ── Student Profile ──────────────────────────────────────────────────────
+  getStudentProfile: async () => {
+    const res = await fetch(`${API_BASE_URL}/students/profile`, {
+      headers: getAuthHeaders(),
+    });
+    return res.json();
+  },
+
+  updateStudentProfile: async (data) => {
+    const res = await fetch(`${API_BASE_URL}/students/profile`, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data),
+    });
+    return res.json();
+  },
+
+  getProfileCompletion: async () => {
+    const res = await fetch(`${API_BASE_URL}/students/profile/completion`, {
+      headers: getAuthHeaders(),
+    });
+    return res.json();
+  },
+
+  // ── Jobs ─────────────────────────────────────────────────────────────────
+  getJobs: async (filters = {}) => {
+    const params = new URLSearchParams();
+    if (filters.skills) params.set('skills', filters.skills);
+    if (filters.location) params.set('location', filters.location);
+    if (filters.jobType) params.set('jobType', filters.jobType);
+    if (filters.search) params.set('search', filters.search);
+    if (filters.myJobs) params.set('myJobs', 'true');
+    const query = params.toString() ? `?${params.toString()}` : '';
+    const res = await fetch(`${API_BASE_URL}/jobs${query}`, {
+      headers: getAuthHeaders(),
+    });
+    return res.json();
+  },
+
+  getJobById: async (id) => {
+    const res = await fetch(`${API_BASE_URL}/jobs/${id}`, {
+      headers: getAuthHeaders(),
+    });
+    return res.json();
+  },
+
+  getJobMatch: async (id) => {
+    const res = await fetch(`${API_BASE_URL}/jobs/${id}/match`, {
+      headers: getAuthHeaders(),
+    });
+    return res.json();
+  },
+
+  createJob: async (data) => {
+    const res = await fetch(`${API_BASE_URL}/jobs`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data),
+    });
+    return res.json();
+  },
+
+  updateJob: async (id, data) => {
+    const res = await fetch(`${API_BASE_URL}/jobs/${id}`, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data),
+    });
+    return res.json();
+  },
+
+  updateJobStatus: async (id, status) => {
+    const res = await fetch(`${API_BASE_URL}/jobs/${id}/status`, {
+      method: 'PATCH',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ status }),
+    });
+    return res.json();
+  },
+
+  deleteJob: async (id) => {
+    const res = await fetch(`${API_BASE_URL}/jobs/${id}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders(),
+    });
+    return res.json();
+  },
+
+  // ── Applications ─────────────────────────────────────────────────────────
+  applyToJob: async (jobId) => {
+    const res = await fetch(`${API_BASE_URL}/applications`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ jobId }),
+    });
+    // return both json and status so callers can detect 409
+    const data = await res.json();
+    return { ...data, _status: res.status };
+  },
+
+  getMyApplications: async () => {
+    const res = await fetch(`${API_BASE_URL}/applications/my`, {
+      headers: getAuthHeaders(),
+    });
+    return res.json();
+  },
+
+  getJobApplications: async (jobId) => {
+    const res = await fetch(`${API_BASE_URL}/jobs/${jobId}/applications`, {
+      headers: getAuthHeaders(),
+    });
+    return res.json();
+  },
+
+  updateApplicationStatus: async (appId, status) => {
+    const res = await fetch(`${API_BASE_URL}/applications/${appId}/status`, {
+      method: 'PATCH',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ status }),
+    });
+    return res.json();
+  },
 };

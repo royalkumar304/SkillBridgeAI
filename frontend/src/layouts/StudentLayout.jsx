@@ -7,10 +7,10 @@ import { User, FileText, Target, Briefcase, BookOpen, Sparkles } from 'lucide-re
 export default function StudentLayout({ children }) {
   const navItems = [
     { label: 'Overview', to: '/student/dashboard', icon: Target, end: true },
-    { label: 'My Skills & Gap Report', to: '/student/dashboard', icon: Sparkles, badge: 'AI' },
-    { label: 'Resume Analyzer', to: '/student/dashboard', icon: FileText },
-    { label: 'Internships & Jobs', to: '/student/dashboard', icon: Briefcase },
-    { label: 'Curated Roadmaps', to: '/student/dashboard', icon: BookOpen },
+    { label: 'My Profile', to: '/student/profile', icon: User },
+    { label: 'Browse Opportunities', to: '/student/jobs', icon: Briefcase },
+    { label: 'My Applications', to: '/student/applications', icon: FileText },
+    { label: 'Skills & Gap Report', to: '/student/dashboard', icon: Sparkles, badge: 'AI' },
   ];
 
   return (

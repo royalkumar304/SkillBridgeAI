@@ -6,8 +6,23 @@ import ProtectedRoute from './components/ProtectedRoute';
 import LandingPage from './pages/LandingPage';
 import Login from './pages/auth/Login';
 import Register from './pages/auth/Register';
+
+// Student Portal Pages
 import StudentDashboard from './pages/student/StudentDashboard';
+import StudentProfile from './pages/student/StudentProfile';
+import EditProfile from './pages/student/EditProfile';
+import JobBoard from './pages/student/JobBoard';
+import JobDetails from './pages/student/JobDetails';
+import MyApplications from './pages/student/MyApplications';
+
+// Recruiter Portal Pages
 import RecruiterDashboard from './pages/recruiter/RecruiterDashboard';
+import ManageJobs from './pages/recruiter/ManageJobs';
+import CreateJob from './pages/recruiter/CreateJob';
+import EditJob from './pages/recruiter/EditJob';
+import JobApplicants from './pages/recruiter/JobApplicants';
+
+// Admin Portal Pages
 import AdminDashboard from './pages/admin/AdminDashboard';
 
 export default function App() {
@@ -19,8 +34,8 @@ export default function App() {
           <Route path="/" element={<LandingPage />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
-          
-          {/* Role-Protected Portals */}
+
+          {/* Student Role-Protected Portals */}
           <Route
             path="/student/dashboard"
             element={
@@ -30,6 +45,48 @@ export default function App() {
             }
           />
           <Route
+            path="/student/profile"
+            element={
+              <ProtectedRoute allowedRoles={['STUDENT']}>
+                <StudentProfile />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/student/profile/edit"
+            element={
+              <ProtectedRoute allowedRoles={['STUDENT']}>
+                <EditProfile />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/student/jobs"
+            element={
+              <ProtectedRoute allowedRoles={['STUDENT']}>
+                <JobBoard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/student/jobs/:id"
+            element={
+              <ProtectedRoute allowedRoles={['STUDENT']}>
+                <JobDetails />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/student/applications"
+            element={
+              <ProtectedRoute allowedRoles={['STUDENT']}>
+                <MyApplications />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Recruiter Role-Protected Portals */}
+          <Route
             path="/recruiter/dashboard"
             element={
               <ProtectedRoute allowedRoles={['RECRUITER']}>
@@ -37,6 +94,40 @@ export default function App() {
               </ProtectedRoute>
             }
           />
+          <Route
+            path="/recruiter/jobs"
+            element={
+              <ProtectedRoute allowedRoles={['RECRUITER']}>
+                <ManageJobs />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/recruiter/jobs/create"
+            element={
+              <ProtectedRoute allowedRoles={['RECRUITER']}>
+                <CreateJob />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/recruiter/jobs/:id/edit"
+            element={
+              <ProtectedRoute allowedRoles={['RECRUITER']}>
+                <EditJob />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/recruiter/jobs/:id/applications"
+            element={
+              <ProtectedRoute allowedRoles={['RECRUITER']}>
+                <JobApplicants />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Admin Role-Protected Portal */}
           <Route
             path="/admin/dashboard"
             element={

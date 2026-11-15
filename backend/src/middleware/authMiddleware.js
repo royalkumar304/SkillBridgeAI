@@ -20,7 +20,24 @@ const authenticateToken = (req, res, next) => {
   }
 };
 
+const optionalAuth = (req, res, next) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return next();
+  }
+
+  const token = authHeader.split(' ')[1];
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'super_secret_jwt_key_skillbridge_2026');
+    req.user = decoded;
+  } catch (err) {
+    // ignore invalid token for optional auth
+  }
+  next();
+};
+
 module.exports = {
   authenticateToken,
+  optionalAuth,
 };
 

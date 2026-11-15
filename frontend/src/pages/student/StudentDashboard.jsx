@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import StudentLayout from '../../layouts/StudentLayout';
 import {
   Sparkles,
@@ -12,6 +13,8 @@ import {
   FileCheck,
   AlertCircle,
   Info,
+  User,
+  Briefcase,
 } from 'lucide-react';
 import { api } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
@@ -149,8 +152,31 @@ export default function StudentDashboard() {
               Welcome, {user ? user.name : 'Student'}
             </h1>
             <p className="text-brand-200 text-sm mt-1">
-              {user ? user.email : 'student@university.edu'} • Role: {user ? user.role : 'STUDENT'} • Apex Institute of Technology
+              {user ? user.email : 'student@university.edu'} • Role: {user ? user.role : 'STUDENT'}
             </p>
+            <div className="flex flex-wrap gap-2 mt-4">
+              <Link
+                to="/student/profile"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/20 hover:bg-white/30 text-white text-xs font-semibold backdrop-blur transition-colors"
+              >
+                <User className="w-3.5 h-3.5" />
+                <span>My Profile</span>
+              </Link>
+              <Link
+                to="/student/jobs"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white text-[#1e3a5f] hover:bg-slate-100 text-xs font-semibold shadow-sm transition-colors"
+              >
+                <Briefcase className="w-3.5 h-3.5" />
+                <span>Browse Opportunities</span>
+              </Link>
+              <Link
+                to="/student/applications"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/20 hover:bg-white/30 text-white text-xs font-semibold backdrop-blur transition-colors"
+              >
+                <FileText className="w-3.5 h-3.5" />
+                <span>My Applications</span>
+              </Link>
+            </div>
           </div>
           <div className="bg-white/10 backdrop-blur rounded-xl p-4 text-center min-w-[130px]">
             <p className="text-xs uppercase font-bold text-brand-200">Career Readiness</p>
