@@ -1,11 +1,14 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import MainLayout from '../../layouts/MainLayout';
-import { Sparkles, ArrowRight, Lock, Mail, ShieldAlert } from 'lucide-react';
-import { api } from '../../services/api';
+import { Sparkles, Lock, Mail, ShieldAlert } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
 
 export default function Login() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const { login, getRoleDashboard } = useAuth();
+
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -13,30 +16,23 @@ export default function Login() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
+  const from = location.state?.from?.pathname;
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     setLoading(true);
 
     try {
-      const res = await api.login(formData);
-      if (res.success && res.data) {
-        localStorage.setItem('token', res.data.token);
-        localStorage.setItem('user', JSON.stringify(res.data.user));
-
-        const role = res.data.user.role;
-        if (role === 'RECRUITER') {
-          navigate('/recruiter/dashboard');
-        } else if (role === 'UNIVERSITY_ADMIN') {
-          navigate('/admin/dashboard');
-        } else {
-          navigate('/student/dashboard');
-        }
+      const result = await login(formData.email, formData.password);
+      if (result.success && result.user) {
+        const dest = from || getRoleDashboard(result.user.role);
+        navigate(dest, { replace: true });
       } else {
-        setError(res.message || 'Invalid credentials');
+        setError(result.message || 'Invalid email or password');
       }
     } catch (err) {
-      setError('Unable to reach backend server. Ensure Express API is running on port 5000.');
+      setError('Backend service connection failure. Please ensure the Express server is running on port 5001.');
     } finally {
       setLoading(false);
     }
@@ -149,4 +145,3 @@ export default function Login() {
     </MainLayout>
   );
 }
-

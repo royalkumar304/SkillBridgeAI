@@ -1,23 +1,15 @@
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Sparkles, LogOut, User, LayoutDashboard } from 'lucide-react';
+import { Sparkles, LogOut, LayoutDashboard, User } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 
 export default function Navbar() {
   const navigate = useNavigate();
-  const token = localStorage.getItem('token');
-  const user = JSON.parse(localStorage.getItem('user') || 'null');
+  const { user, isAuthenticated, logout, getRoleDashboard } = useAuth();
 
   const handleLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
+    logout();
     navigate('/login');
-  };
-
-  const getDashboardPath = () => {
-    if (!user) return '/student/dashboard';
-    if (user.role === 'RECRUITER') return '/recruiter/dashboard';
-    if (user.role === 'UNIVERSITY_ADMIN') return '/admin/dashboard';
-    return '/student/dashboard';
   };
 
   return (
@@ -45,10 +37,10 @@ export default function Navbar() {
 
           {/* User actions */}
           <div className="flex items-center space-x-3">
-            {token && user ? (
+            {isAuthenticated && user ? (
               <div className="flex items-center space-x-3">
                 <Link
-                  to={getDashboardPath()}
+                  to={getRoleDashboard(user.role)}
                   className="inline-flex items-center space-x-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-brand-50 text-brand-800 hover:bg-brand-100 transition-colors"
                 >
                   <LayoutDashboard className="w-4 h-4" />
@@ -84,4 +76,3 @@ export default function Navbar() {
     </header>
   );
 }
-

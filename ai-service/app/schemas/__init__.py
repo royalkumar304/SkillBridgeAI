@@ -1,6 +1,9 @@
 from .skill_schemas import (
     SkillExtractRequest,
     SkillExtractResponse,
+    PDFUploadResponse,
+    SkillDetail,
+    PipelineMetadata,
     GapAnalysisRequest,
     GapAnalysisResponse,
     CourseRecommendation,
@@ -15,6 +18,9 @@ from .matching_schemas import (
 __all__ = [
     "SkillExtractRequest",
     "SkillExtractResponse",
+    "PDFUploadResponse",
+    "SkillDetail",
+    "PipelineMetadata",
     "GapAnalysisRequest",
     "GapAnalysisResponse",
     "CourseRecommendation",
@@ -23,4 +29,3 @@ __all__ = [
     "JobMatchResponse",
     "MatchBreakdown",
 ]
-

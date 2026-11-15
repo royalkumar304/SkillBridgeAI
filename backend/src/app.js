@@ -1,12 +1,16 @@
 const express = require('express');
 const cors = require('cors');
 const morgan = require('morgan');
+const helmet = require('helmet');
 
 const healthRoutes = require('./routes/healthRoutes');
 const authRoutes = require('./routes/authRoutes');
 const { notFoundHandler, globalErrorHandler } = require('./middleware/errorHandler');
 
 const app = express();
+
+// Security HTTP headers
+app.use(helmet());
 
 // Middlewares
 app.use(cors({
@@ -39,4 +43,3 @@ app.use(notFoundHandler);
 app.use(globalErrorHandler);
 
 module.exports = app;
-

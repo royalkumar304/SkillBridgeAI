@@ -1,17 +1,50 @@
 import React, { useState } from 'react';
 import StudentLayout from '../../layouts/StudentLayout';
-import { Sparkles, FileText, Target, ArrowRight, BookOpen, CheckCircle, AlertTriangle, ExternalLink } from 'lucide-react';
+import {
+  Sparkles,
+  FileText,
+  Target,
+  ArrowRight,
+  BookOpen,
+  CheckCircle,
+  AlertTriangle,
+  Upload,
+  FileCheck,
+  AlertCircle,
+  Info,
+} from 'lucide-react';
 import { api } from '../../services/api';
+import { useAuth } from '../../context/AuthContext';
 
 export default function StudentDashboard() {
-  // Resume extraction state
-  const [resumeText, setResumeText] = useState(
-    'Final year B.Tech CSE student passionate about Web Development. Skilled in React, JavaScript, HTML, CSS, Tailwind CSS, Git, and REST APIs. Built 3 full-stack projects using Node.js and MongoDB.'
-  );
-  const [extractedSkills, setExtractedSkills] = useState(['React', 'JavaScript', 'HTML', 'CSS', 'Tailwind CSS', 'Git', 'REST API', 'Node.js', 'MongoDB']);
-  const [extractLoading, setExtractLoading] = useState(false);
+  const { user } = useAuth();
 
-  // Skill gap state
+  // Resume PDF upload state
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [uploadError, setUploadError] = useState('');
+  const [uploading, setUploading] = useState(false);
+  const [pdfUploadResult, setPdfUploadResult] = useState(null);
+
+  // Resume text fallback extraction state
+  const [resumeText, setResumeText] = useState(
+    'B.Tech CSE student passionate about Full Stack Development. Proficient in React.js, Tailwind, Node.js, Express, and Mongo. Deployed microservices to K8s and AWS.'
+  );
+  const [extractedSkills, setExtractedSkills] = useState([
+    'AWS',
+    'Express',
+    'JavaScript',
+    'Kubernetes',
+    'Microservices',
+    'MongoDB',
+    'Node.js',
+    'React',
+    'Tailwind CSS',
+  ]);
+  const [skillDetails, setSkillDetails] = useState([]);
+  const [extractLoading, setExtractLoading] = useState(false);
+  const [pipelineInfo, setPipelineInfo] = useState(null);
+
+  // Career gap state
   const [targetRole, setTargetRole] = useState('Full Stack Developer');
   const [gapData, setGapData] = useState({
     readiness_score: 85.7,
@@ -19,27 +52,72 @@ export default function StudentDashboard() {
     acquired_skills: ['React', 'JavaScript', 'REST API', 'Git', 'Node.js', 'MongoDB'],
     missing_critical_skills: ['Express'],
     recommended_courses: [
-      { skill: 'Express', title: 'Practical Guide to Express', estimated_hours: 12 }
-    ]
-  });
-  const [gapLoading, setGapLoading] = useState(false);
-
-  // Job matching simulation state
-  const [matchResult, setMatchResult] = useState({
-    jobTitle: 'Frontend Developer Intern @ ABC Technologies',
-    score: 88,
-    eligible: true,
+      { skill: 'Express', title: 'Practical Guide to Express', estimated_hours: 12 },
+    ],
   });
 
-  const handleExtractSkills = async () => {
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    setUploadError('');
+    setPdfUploadResult(null);
+
+    if (!file) return;
+
+    // Validate PDF file extension
+    if (!file.name.toLowerCase().endsWith('.pdf') && file.type !== 'application/pdf') {
+      setUploadError('Invalid file format. Please select a valid PDF document (.pdf).');
+      setSelectedFile(null);
+      return;
+    }
+
+    // Validate size (max 5MB)
+    const maxSize = 5 * 1024 * 1024;
+    if (file.size > maxSize) {
+      setUploadError(`File is too large (${(file.size / (1024 * 1024)).toFixed(2)}MB). Maximum allowed size is 5MB.`);
+      setSelectedFile(null);
+      return;
+    }
+
+    setSelectedFile(file);
+  };
+
+  const handleUploadPdf = async () => {
+    if (!selectedFile) {
+      setUploadError('Please select a PDF file first.');
+      return;
+    }
+
+    setUploading(true);
+    setUploadError('');
+
+    try {
+      const res = await api.uploadResumePdf(selectedFile);
+      if (res.success) {
+        setPdfUploadResult(res);
+        setExtractedSkills(res.extracted_skills);
+        setSkillDetails(res.skill_details);
+        setPipelineInfo(res.pipeline_metadata);
+      } else {
+        setUploadError(res.detail || 'Failed to parse resume PDF.');
+      }
+    } catch (err) {
+      setUploadError('Unable to connect to AI microservice on port 8000.');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleExtractText = async () => {
     setExtractLoading(true);
     try {
       const res = await api.extractSkills(resumeText);
-      if (res.success && res.extracted_skills) {
+      if (res.success) {
         setExtractedSkills(res.extracted_skills);
+        setSkillDetails(res.skill_details);
+        setPipelineInfo(res.pipeline_metadata);
       }
     } catch (err) {
-      console.warn('FastAPI microservice unreachable, using local fallback:', err);
+      console.warn('AI microservice error:', err);
     } finally {
       setExtractLoading(false);
     }
@@ -47,7 +125,6 @@ export default function StudentDashboard() {
 
   const handleRunGapAnalysis = async (role) => {
     setTargetRole(role);
-    setGapLoading(true);
     try {
       const res = await api.analyzeGap(role, extractedSkills);
       if (res.success) {
@@ -55,8 +132,6 @@ export default function StudentDashboard() {
       }
     } catch (err) {
       console.warn('Gap analysis service unreachable:', err);
-    } finally {
-      setGapLoading(false);
     }
   };
 
@@ -68,11 +143,13 @@ export default function StudentDashboard() {
           <div>
             <div className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full bg-white/10 text-brand-200 text-xs font-semibold mb-2">
               <Sparkles className="w-3.5 h-3.5" />
-              <span>Student Intelligence Hub</span>
+              <span>Student Intelligence Portal</span>
             </div>
-            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">Welcome back, Student</h1>
+            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
+              Welcome, {user ? user.name : 'Student'}
+            </h1>
             <p className="text-brand-200 text-sm mt-1">
-              B.Tech Computer Science & Engineering • CGPA: 8.4 / 10 • University: Apex Institute of Technology
+              {user ? user.email : 'student@university.edu'} • Role: {user ? user.role : 'STUDENT'} • Apex Institute of Technology
             </p>
           </div>
           <div className="bg-white/10 backdrop-blur rounded-xl p-4 text-center min-w-[130px]">
@@ -82,10 +159,92 @@ export default function StudentDashboard() {
           </div>
         </div>
 
-        {/* 2-Column Grid: AI Resume Parser & Career Gap Analyzer */}
+        {/* Section 1: Real PDF Resume Parser (PyMuPDF) */}
+        <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center space-x-2">
+              <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center">
+                <FileCheck className="w-4 h-4" />
+              </div>
+              <div>
+                <h2 className="text-base font-bold text-slate-900">Upload Resume (PDF Engine)</h2>
+                <p className="text-xs text-slate-500">
+                  Powered by PyMuPDF text stream extraction & taxonomy alias normalizer
+                </p>
+              </div>
+            </div>
+            <span className="text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 px-2.5 py-1 rounded-full">
+              PyMuPDF v2.1 Active
+            </span>
+          </div>
+
+          {uploadError && (
+            <div className="mb-4 p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-center space-x-2">
+              <AlertCircle className="w-4 h-4 flex-shrink-0" />
+              <span>{uploadError}</span>
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
+            <div className="md:col-span-2">
+              <label className="flex flex-col items-center justify-center border-2 border-dashed border-slate-300 hover:border-brand-500 rounded-xl p-5 cursor-pointer bg-slate-50 hover:bg-white transition-colors">
+                <Upload className="w-6 h-6 text-slate-400 mb-2" />
+                <span className="text-xs font-semibold text-slate-700">
+                  {selectedFile ? selectedFile.name : 'Click to select or drag PDF resume here'}
+                </span>
+                <span className="text-[10px] text-slate-400 mt-1">
+                  Supported format: .pdf (Max size: 5MB)
+                </span>
+                <input
+                  type="file"
+                  accept="application/pdf,.pdf"
+                  onChange={handleFileChange}
+                  className="hidden"
+                />
+              </label>
+            </div>
+
+            <div className="flex flex-col space-y-2">
+              <button
+                onClick={handleUploadPdf}
+                disabled={!selectedFile || uploading}
+                className="w-full py-2.5 px-4 bg-brand-900 hover:bg-brand-800 text-white rounded-xl text-xs font-semibold inline-flex items-center justify-center space-x-2 transition-colors disabled:opacity-50"
+              >
+                <Upload className="w-4 h-4" />
+                <span>{uploading ? 'Parsing PDF via PyMuPDF...' : 'Parse & Extract Skills'}</span>
+              </button>
+              {selectedFile && (
+                <p className="text-[11px] text-slate-500 text-center">
+                  {(selectedFile.size / 1024).toFixed(1)} KB selected
+                </p>
+              )}
+            </div>
+          </div>
+
+          {/* PDF Results Summary */}
+          {pdfUploadResult && (
+            <div className="mt-6 pt-6 border-t border-slate-100">
+              <div className="bg-slate-50 rounded-xl p-4 border border-slate-200/80 mb-4">
+                <div className="flex flex-wrap items-center justify-between text-xs text-slate-700 mb-2">
+                  <span className="font-semibold text-slate-900">
+                    File: <code className="bg-white px-2 py-0.5 rounded border border-slate-200">{pdfUploadResult.filename}</code>
+                  </span>
+                  <span>Pages: <strong>{pdfUploadResult.page_count}</strong></span>
+                  <span>Characters: <strong>{pdfUploadResult.character_count}</strong></span>
+                  <span>Status: <strong className="text-emerald-700 uppercase">{pdfUploadResult.parsing_status}</strong></span>
+                </div>
+                <p className="text-[11px] text-slate-500 italic">
+                  Preview: "{pdfUploadResult.extracted_text_preview}"
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* 2-Column Grid: Normalized Skills with Evidence & Career Gap */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           
-          {/* Card 1: Resume Text & Skill Extractor (FastAPI integration) */}
+          {/* Card: Extracted Skills & Evidence Inspector */}
           <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm flex flex-col justify-between">
             <div>
               <div className="flex items-center justify-between mb-4">
@@ -94,60 +253,58 @@ export default function StudentDashboard() {
                     <FileText className="w-4 h-4" />
                   </div>
                   <div>
-                    <h2 className="text-base font-bold text-slate-900">AI Skill Extractor</h2>
-                    <p className="text-xs text-slate-500">Live Python FastAPI microservice tester</p>
+                    <h2 className="text-base font-bold text-slate-900">Normalized Extracted Skills</h2>
+                    <p className="text-xs text-slate-500">Canonical taxonomy resolution & confidence</p>
                   </div>
                 </div>
-                <span className="text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded-full">
-                  Port 8000 Active
+                <span className="text-[10px] font-semibold bg-brand-50 text-brand-800 px-2.5 py-1 rounded-full">
+                  {extractedSkills.length} Detected
                 </span>
               </div>
 
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
-                Parsed Resume Text / Project Summary
-              </label>
-              <textarea
-                rows="4"
-                value={resumeText}
-                onChange={(e) => setResumeText(e.target.value)}
-                className="w-full text-xs p-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-500 focus:outline-none font-mono text-slate-700 bg-slate-50/50"
-              />
-
-              <div className="mt-3 flex items-center justify-between">
-                <button
-                  onClick={handleExtractSkills}
-                  disabled={extractLoading}
-                  className="px-4 py-2 bg-brand-900 hover:bg-brand-800 text-white rounded-xl text-xs font-semibold inline-flex items-center space-x-1.5 transition-colors disabled:opacity-50"
-                >
-                  <Sparkles className="w-3.5 h-3.5" />
-                  <span>{extractLoading ? 'Extracting...' : 'Extract Skills with AI'}</span>
-                </button>
-                <span className="text-[11px] text-slate-400">{extractedSkills.length} skills identified</span>
+              {/* Skills Badges */}
+              <div className="flex flex-wrap gap-1.5 mb-4">
+                {extractedSkills.map((skill, idx) => (
+                  <span
+                    key={idx}
+                    className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold bg-brand-50 text-brand-900 border border-brand-200/60"
+                  >
+                    <CheckCircle className="w-3 h-3 text-brand-600 mr-1" />
+                    {skill}
+                  </span>
+                ))}
               </div>
 
-              {/* Extracted Tags */}
-              <div className="mt-4 pt-4 border-t border-slate-100">
-                <p className="text-xs font-semibold text-slate-600 mb-2">Normalized Extracted Skills:</p>
-                <div className="flex flex-wrap gap-1.5">
-                  {extractedSkills.map((skill, idx) => (
-                    <span
-                      key={idx}
-                      className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium bg-brand-50 text-brand-900 border border-brand-200/60"
-                    >
-                      <CheckCircle className="w-3 h-3 text-brand-600 mr-1" />
-                      {skill}
-                    </span>
-                  ))}
+              {/* Detailed Skill Evidence Table if available */}
+              {skillDetails.length > 0 && (
+                <div className="mt-4 pt-4 border-t border-slate-100 max-h-60 overflow-y-auto">
+                  <p className="text-xs font-bold text-slate-700 mb-2">Confidence & Extracted Evidence:</p>
+                  <div className="space-y-2">
+                    {skillDetails.slice(0, 6).map((item, idx) => (
+                      <div key={idx} className="p-2 rounded-lg bg-slate-50 border border-slate-200 text-xs">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="font-bold text-slate-800">{item.name}</span>
+                          <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded">
+                            {Math.round(item.confidence * 100)}% Confidence
+                          </span>
+                        </div>
+                        <p className="text-[10px] text-slate-500 font-mono italic">{item.evidence}</p>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
 
-            <p className="text-[10px] text-slate-400 mt-4 italic">
-              Note: Day 1 demonstration uses standard skills dictionary; PyMuPDF PDF parsing connects in Phase 2.
-            </p>
+            <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-[10px] text-slate-400">
+              <span className="flex items-center space-x-1">
+                <Info className="w-3 h-3 text-slate-400" />
+                <span>Deterministic rule-based taxonomy normalizer</span>
+              </span>
+            </div>
           </div>
 
-          {/* Card 2: Skill Gap Analysis & Recommended Roadmaps */}
+          {/* Card: Skill Gap Analysis */}
           <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm flex flex-col justify-between">
             <div>
               <div className="flex items-center justify-between mb-4">
@@ -237,69 +394,7 @@ export default function StudentDashboard() {
             </div>
           </div>
         </div>
-
-        {/* Section 3: Recommended Internships */}
-        <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <h2 className="text-base font-bold text-slate-900">Recommended Internships for You</h2>
-              <p className="text-xs text-slate-500">Matched via intelligent weighted skill algorithm</p>
-            </div>
-            <span className="text-xs font-semibold text-brand-700 hover:text-brand-900 cursor-pointer">
-              View All 14 Jobs &rarr;
-            </span>
-          </div>
-
-          <div className="space-y-4">
-            <div className="p-4 rounded-xl border border-slate-200 hover:border-brand-300 transition-colors flex flex-col md:flex-row md:items-center justify-between gap-4">
-              <div className="space-y-1">
-                <div className="flex items-center space-x-2">
-                  <h3 className="text-sm font-bold text-slate-900">Frontend Developer Intern</h3>
-                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
-                    88% Match
-                  </span>
-                </div>
-                <p className="text-xs text-slate-600">ABC Technologies • Remote • Stipend: ₹15,000/mo</p>
-                <div className="flex flex-wrap gap-1 pt-1">
-                  <span className="px-2 py-0.5 rounded text-[10px] bg-slate-100 text-slate-700 font-medium">React (35%)</span>
-                  <span className="px-2 py-0.5 rounded text-[10px] bg-slate-100 text-slate-700 font-medium">JavaScript (35%)</span>
-                  <span className="px-2 py-0.5 rounded text-[10px] bg-slate-100 text-slate-700 font-medium">Tailwind CSS (30%)</span>
-                </div>
-              </div>
-
-              <div className="flex items-center space-x-2">
-                <button className="px-4 py-2 bg-brand-900 hover:bg-brand-800 text-white rounded-xl text-xs font-semibold transition-colors">
-                  Apply Now
-                </button>
-              </div>
-            </div>
-
-            <div className="p-4 rounded-xl border border-slate-200 hover:border-brand-300 transition-colors flex flex-col md:flex-row md:items-center justify-between gap-4">
-              <div className="space-y-1">
-                <div className="flex items-center space-x-2">
-                  <h3 className="text-sm font-bold text-slate-900">Full Stack Intern (MERN)</h3>
-                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200">
-                    78% Match
-                  </span>
-                </div>
-                <p className="text-xs text-slate-600">CloudMatrix Labs • Bangalore / Hybrid • Stipend: ₹20,000/mo</p>
-                <div className="flex flex-wrap gap-1 pt-1">
-                  <span className="px-2 py-0.5 rounded text-[10px] bg-slate-100 text-slate-700 font-medium">React</span>
-                  <span className="px-2 py-0.5 rounded text-[10px] bg-slate-100 text-slate-700 font-medium">Node.js</span>
-                  <span className="px-2 py-0.5 rounded text-[10px] bg-slate-100 text-slate-700 font-medium">MongoDB</span>
-                </div>
-              </div>
-
-              <div className="flex items-center space-x-2">
-                <button className="px-4 py-2 bg-brand-900 hover:bg-brand-800 text-white rounded-xl text-xs font-semibold transition-colors">
-                  Apply Now
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
       </div>
     </StudentLayout>
   );
 }
-

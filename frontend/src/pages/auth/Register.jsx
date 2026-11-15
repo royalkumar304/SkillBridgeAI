@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import MainLayout from '../../layouts/MainLayout';
-import { Sparkles, User, Mail, Lock, ShieldAlert, CheckCircle } from 'lucide-react';
-import { api } from '../../services/api';
+import { Sparkles, User, Mail, Lock, ShieldAlert } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
 
 export default function Register() {
   const navigate = useNavigate();
+  const { register, getRoleDashboard } = useAuth();
+
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -21,23 +23,20 @@ export default function Register() {
     setLoading(true);
 
     try {
-      const res = await api.register(formData);
-      if (res.success && res.data) {
-        localStorage.setItem('token', res.data.token);
-        localStorage.setItem('user', JSON.stringify(res.data.user));
+      const result = await register(
+        formData.name,
+        formData.email,
+        formData.password,
+        formData.role
+      );
 
-        if (formData.role === 'RECRUITER') {
-          navigate('/recruiter/dashboard');
-        } else if (formData.role === 'UNIVERSITY_ADMIN') {
-          navigate('/admin/dashboard');
-        } else {
-          navigate('/student/dashboard');
-        }
+      if (result.success && result.user) {
+        navigate(getRoleDashboard(result.user.role), { replace: true });
       } else {
-        setError(res.message || 'Registration failed');
+        setError(result.message || 'Registration failed');
       }
     } catch (err) {
-      setError('Could not reach backend. Verify Express is running on port 5000.');
+      setError('Could not reach backend service. Verify Express is running on port 5001.');
     } finally {
       setLoading(false);
     }
@@ -141,4 +140,3 @@ export default function Register() {
     </MainLayout>
   );
 }
-

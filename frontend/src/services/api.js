@@ -1,8 +1,8 @@
 /**
- * SkillBridge AI Frontend API Client
+ * SkillBridge AI Frontend API Client (Updated for Day 2)
  */
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api/v1';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001/api/v1';
 const AI_BASE_URL = import.meta.env.VITE_AI_SERVICE_URL || 'http://localhost:8000';
 
 const getAuthHeaders = () => {
@@ -45,7 +45,7 @@ export const api = {
     return res.json();
   },
 
-  // AI Microservice (Direct / Bridged)
+  // AI Microservice (Port 8000)
   checkAiHealth: async () => {
     const res = await fetch(`${AI_BASE_URL}/health`);
     return res.json();
@@ -56,6 +56,17 @@ export const api = {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ text }),
+    });
+    return res.json();
+  },
+
+  uploadResumePdf: async (file) => {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const res = await fetch(`${AI_BASE_URL}/upload-resume-pdf`, {
+      method: 'POST',
+      body: formData,
     });
     return res.json();
   },
@@ -81,4 +92,3 @@ export const api = {
     return res.json();
   },
 };
-
