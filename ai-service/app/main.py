@@ -5,6 +5,7 @@ from app.routes.health import router as health_router
 from app.routes.skills import router as skills_router
 from app.routes.matching import router as matching_router
 from app.routes.gap_analysis import router as gap_router
+from app.routes.career_intelligence import router as career_router
 
 app = FastAPI(
     title="SkillBridge AI Microservice",
@@ -26,6 +27,7 @@ app.include_router(health_router)
 app.include_router(skills_router)
 app.include_router(matching_router)
 app.include_router(gap_router)
+app.include_router(career_router)
 
 @app.get("/")
 def read_root():

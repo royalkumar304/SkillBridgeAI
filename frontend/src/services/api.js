@@ -214,4 +214,42 @@ export const api = {
     });
     return res.json();
   },
+
+  // ── Career Intelligence (Day 4) ──────────────────────────────────────────
+  getCareerReadiness: async (targetRole) => {
+    const query = targetRole ? `?targetRole=${encodeURIComponent(targetRole)}` : '';
+    const res = await fetch(`${API_BASE_URL}/career/readiness${query}`, {
+      headers: getAuthHeaders(),
+    });
+    return res.json();
+  },
+
+  getSkillGapAnalysis: async (params = {}) => {
+    const searchParams = new URLSearchParams();
+    if (params.jobId) searchParams.set('jobId', params.jobId);
+    if (params.targetRole) searchParams.set('targetRole', params.targetRole);
+    const query = searchParams.toString() ? `?${searchParams.toString()}` : '';
+    const res = await fetch(`${API_BASE_URL}/career/gap-analysis${query}`, {
+      headers: getAuthHeaders(),
+    });
+    return res.json();
+  },
+
+  getLearningRecommendations: async (params = {}) => {
+    const searchParams = new URLSearchParams();
+    if (params.jobId) searchParams.set('jobId', params.jobId);
+    if (params.targetRole) searchParams.set('targetRole', params.targetRole);
+    const query = searchParams.toString() ? `?${searchParams.toString()}` : '';
+    const res = await fetch(`${API_BASE_URL}/career/recommendations${query}`, {
+      headers: getAuthHeaders(),
+    });
+    return res.json();
+  },
+
+  getJobWiseAnalysis: async () => {
+    const res = await fetch(`${API_BASE_URL}/career/jobs-analysis`, {
+      headers: getAuthHeaders(),
+    });
+    return res.json();
+  },
 };

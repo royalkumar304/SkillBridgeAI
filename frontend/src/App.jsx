@@ -14,6 +14,10 @@ import EditProfile from './pages/student/EditProfile';
 import JobBoard from './pages/student/JobBoard';
 import JobDetails from './pages/student/JobDetails';
 import MyApplications from './pages/student/MyApplications';
+import CareerReadiness from './pages/student/CareerReadiness';
+import SkillGapAnalysis from './pages/student/SkillGapAnalysis';
+import LearningRecommendations from './pages/student/LearningRecommendations';
+import JobWiseAnalysis from './pages/student/JobWiseAnalysis';
 
 // Recruiter Portal Pages
 import RecruiterDashboard from './pages/recruiter/RecruiterDashboard';
@@ -81,6 +85,38 @@ export default function App() {
             element={
               <ProtectedRoute allowedRoles={['STUDENT']}>
                 <MyApplications />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/student/career/readiness"
+            element={
+              <ProtectedRoute allowedRoles={['STUDENT']}>
+                <CareerReadiness />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/student/career/gap"
+            element={
+              <ProtectedRoute allowedRoles={['STUDENT']}>
+                <SkillGapAnalysis />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/student/career/recommendations"
+            element={
+              <ProtectedRoute allowedRoles={['STUDENT']}>
+                <LearningRecommendations />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/student/career/jobs"
+            element={
+              <ProtectedRoute allowedRoles={['STUDENT']}>
+                <JobWiseAnalysis />
               </ProtectedRoute>
             }
           />

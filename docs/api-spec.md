@@ -328,3 +328,131 @@ AI Microservice Base URL: `http://localhost:8000`
 ### 5.4 Career Gap Analysis
 - `POST /analyze-skill-gap`
 - Computes career readiness against industry standard benchmarks.
+
+
+---
+
+## 6. Career Intelligence Endpoints (Day 4 Additions)
+
+### 6.1 Career Readiness Assessment
+- **Endpoint:** `GET /career/readiness`
+- **Auth Required:** Yes (`STUDENT` only)
+- **Query Params:** `?targetRole=Full Stack Developer` (optional)
+- **Description:** Calculates transparent career readiness score (0-100) using 3 pillars: Skill Coverage (50%), Practical Evidence (30%), Profile Completeness & Academics (20%). If student has no skills or profile data, returns `sufficientData: false` with guidance.
+- **Success Response (200 OK):**
+```json
+{
+  "success": true,
+  "message": "Career readiness evaluated successfully",
+  "data": {
+    "sufficientData": true,
+    "readinessScore": 61.6,
+    "targetRole": "Full Stack Engineer",
+    "message": "Evaluated based on 3/7 benchmark skills, 2 projects, and 1 experiences.",
+    "breakdown": {
+      "skillCoverageScore": 25.0,
+      "practicalEvidenceScore": 15.0,
+      "academicCompletenessScore": 21.6
+    },
+    "matchedBenchmarkSkills": ["React", "Node.js", "JavaScript"],
+    "missingBenchmarkSkills": ["Express", "MongoDB", "REST API", "Git"],
+    "improvementAreas": [
+      "Learn core benchmark skills: Express, MongoDB, REST API",
+      "Add at least 2 featured projects demonstrating target skills"
+    ]
+  }
+}
+```
+
+### 6.2 Skill Gap Analysis
+- **Endpoint:** `GET /career/gap-analysis`
+- **Auth Required:** Yes (`STUDENT` only)
+- **Query Params:** `?jobId=<job_id>` OR `?targetRole=Frontend Developer`
+- **Description:** Detailed gap analysis comparing student skills against an active corporate job or industry role benchmark. Identifies `matchedSkills`, `partiallyMatchedSkills` (held skill but below required proficiency level), and `missingSkills`.
+- **Success Response (200 OK):**
+```json
+{
+  "success": true,
+  "message": "Job skill gap evaluated successfully",
+  "data": {
+    "mode": "JOB",
+    "job": {
+      "_id": "6afc0ac93f6d936685a3b3d4",
+      "title": "Full Stack Engineer (MERN)",
+      "companyName": "TechCorp Labs"
+    },
+    "skillCoverage": 45,
+    "matchedSkills": [
+      { "name": "React", "student_level": "intermediate", "required_level": "intermediate", "weight": 30 }
+    ],
+    "partiallyMatchedSkills": [
+      { "name": "Node.js", "student_level": "beginner", "required_level": "intermediate", "weight": 30, "reason": "Skill held at beginner level; job requires intermediate level." }
+    ],
+    "missingSkills": [
+      { "name": "MongoDB", "required_level": "intermediate", "weight": 20 },
+      { "name": "Docker", "required_level": "beginner", "weight": 10 }
+    ],
+    "actionableSuggestions": [
+      "Critical Gap: Acquire foundational competency in MongoDB, Docker.",
+      "Level Gap: Elevate Node.js from beginner to intermediate proficiency."
+    ],
+    "learningPath": [...]
+  }
+}
+```
+
+### 6.3 Personalized Learning Recommendations
+- **Endpoint:** `GET /career/recommendations`
+- **Auth Required:** Yes (`STUDENT` only)
+- **Query Params:** `?jobId=<job_id>` OR `?targetRole=Full Stack Developer`
+- **Description:** Curates beginner-to-advanced learning roadmaps linked directly to official documentation (React, Node, MongoDB, Docker, Python, etc.) with estimated study hours and zero fictitious certifications.
+- **Success Response (200 OK):**
+```json
+{
+  "success": true,
+  "message": "Learning recommendations retrieved successfully",
+  "data": {
+    "context": "Role: Full Stack Developer",
+    "recommendations": [
+      {
+        "skill": "MongoDB",
+        "level": "beginner",
+        "title": "MongoDB Basics & Document Modeling",
+        "provider": "MongoDB University",
+        "description": "Learn JSON-like document storage, BSON types, and CRUD operations.",
+        "estimated_hours": 10,
+        "source_url": "https://learn.mongodb.com/",
+        "priority": "HIGH"
+      }
+    ],
+    "total": 1
+  }
+}
+```
+
+### 6.4 Job-Wise Career Intelligence
+- **Endpoint:** `GET /career/jobs-analysis`
+- **Auth Required:** Yes (`STUDENT` only)
+- **Description:** Batch evaluates all active corporate job postings against the authenticated student's profile, calculating match percentages, matched counts, missing counts, and eligibility.
+- **Success Response (200 OK):**
+```json
+{
+  "success": true,
+  "message": "Job-wise career analysis generated successfully",
+  "data": {
+    "totalJobsAnalyzed": 17,
+    "jobs": [
+      {
+        "jobId": "6afc0ac93f6d936685a3b3d4",
+        "title": "Full Stack Engineer (MERN)",
+        "companyName": "TechCorp Labs",
+        "skillCoverage": 45,
+        "matchedSkillsCount": 1,
+        "partialSkillsCount": 1,
+        "missingSkillsCount": 3,
+        "cgpaEligible": true
+      }
+    ]
+  }
+}
+```

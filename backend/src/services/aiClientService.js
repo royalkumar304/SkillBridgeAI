@@ -63,6 +63,45 @@ class AIClientService {
       throw error;
     }
   }
+
+  static async analyzeJobSkillGap(studentSkills, jobRequiredSkills, jobPreferredSkills = []) {
+    try {
+      const response = await fetch(`${AI_BASE_URL}/career-intelligence/job-gap`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          student_skills: studentSkills,
+          job_required_skills: jobRequiredSkills,
+          job_preferred_skills: jobPreferredSkills,
+        }),
+      });
+      return await response.json();
+    } catch (error) {
+      console.error('[AIClientService] Analyze job skill gap failed:', error.message);
+      throw error;
+    }
+  }
+
+  static async calculateCareerReadiness(targetRole, studentSkills, studentCgpa, projects, experience, profileCompletePercent) {
+    try {
+      const response = await fetch(`${AI_BASE_URL}/career-intelligence/readiness`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          target_role: targetRole,
+          student_skills: studentSkills,
+          student_cgpa: studentCgpa,
+          projects: projects,
+          experience: experience,
+          profile_complete_percent: profileCompletePercent,
+        }),
+      });
+      return await response.json();
+    } catch (error) {
+      console.error('[AIClientService] Calculate career readiness failed:', error.message);
+      throw error;
+    }
+  }
 }
 
 module.exports = AIClientService;

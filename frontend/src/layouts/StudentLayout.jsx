@@ -10,7 +10,10 @@ export default function StudentLayout({ children }) {
     { label: 'My Profile', to: '/student/profile', icon: User },
     { label: 'Browse Opportunities', to: '/student/jobs', icon: Briefcase },
     { label: 'My Applications', to: '/student/applications', icon: FileText },
-    { label: 'Skills & Gap Report', to: '/student/dashboard', icon: Sparkles, badge: 'AI' },
+    { label: 'Career Intelligence', to: '/student/career/readiness', icon: Sparkles, badge: 'AI' },
+    { label: 'Skill Gap Breakdown', to: '/student/career/gap', icon: Target },
+    { label: 'Learning Roadmap', to: '/student/career/recommendations', icon: BookOpen },
+    { label: 'Job-Wise Analysis', to: '/student/career/jobs', icon: Briefcase },
   ];
 
   return (
