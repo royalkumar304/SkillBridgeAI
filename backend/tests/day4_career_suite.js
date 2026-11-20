@@ -158,6 +158,29 @@ async function runTests() {
     assert(updateProfile.status === 200, 'Student profile populated with skills, projects, and experience');
 
     // 3. Recruiter creates a Corporate Job matching Job schema
+    // Under Day 5 University Admin Governance, verify recruiter's company first using provisioned admin
+    const adminLogin = await request('/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({ email: 'admin@univ.edu', password: 'Password@123' }),
+    });
+    const adminToken = adminLogin.data?.data?.token;
+
+    // Recruiter triggers company registration
+    await request('/jobs', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${recruiterToken}` },
+      body: JSON.stringify({ title: 'Init', description: 'Init', requiredSkills: [{ name: 'React' }], deadline: new Date(Date.now() + 86400000).toISOString() }),
+    });
+    const compListRes = await request('/admin/companies', { headers: { Authorization: `Bearer ${adminToken}` } });
+    const rCompany = compListRes.data?.data?.companies?.find((c) => c.recruiter?.email === recruiterEmail);
+    if (rCompany) {
+      await request(`/admin/companies/${rCompany.id}/verify`, {
+        method: 'PATCH',
+        headers: { Authorization: `Bearer ${adminToken}` },
+        body: JSON.stringify({ verified: true }),
+      });
+    }
+
     const postJob = await request('/jobs', {
       method: 'POST',
       headers: { Authorization: `Bearer ${recruiterToken}` },

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import StudentLayout from '../../layouts/StudentLayout';
 import {
@@ -15,6 +15,7 @@ import {
   Info,
   User,
   Briefcase,
+  Loader2,
 } from 'lucide-react';
 import { api } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
@@ -29,35 +30,64 @@ export default function StudentDashboard() {
   const [pdfUploadResult, setPdfUploadResult] = useState(null);
 
   // Resume text fallback extraction state
-  const [resumeText, setResumeText] = useState(
-    'B.Tech CSE student passionate about Full Stack Development. Proficient in React.js, Tailwind, Node.js, Express, and Mongo. Deployed microservices to K8s and AWS.'
-  );
-  const [extractedSkills, setExtractedSkills] = useState([
-    'AWS',
-    'Express',
-    'JavaScript',
-    'Kubernetes',
-    'Microservices',
-    'MongoDB',
-    'Node.js',
-    'React',
-    'Tailwind CSS',
-  ]);
+  const [resumeText, setResumeText] = useState('');
+  const [extractedSkills, setExtractedSkills] = useState([]);
   const [skillDetails, setSkillDetails] = useState([]);
   const [extractLoading, setExtractLoading] = useState(false);
   const [pipelineInfo, setPipelineInfo] = useState(null);
 
-  // Career gap state
+  // Career gap & Readiness state (Real backend values)
   const [targetRole, setTargetRole] = useState('Full Stack Developer');
-  const [gapData, setGapData] = useState({
-    readiness_score: 85.7,
-    gap_percentage: 14.3,
-    acquired_skills: ['React', 'JavaScript', 'REST API', 'Git', 'Node.js', 'MongoDB'],
-    missing_critical_skills: ['Express'],
-    recommended_courses: [
-      { skill: 'Express', title: 'Practical Guide to Express', estimated_hours: 12 },
-    ],
-  });
+  const [loadingMetrics, setLoadingMetrics] = useState(true);
+  const [readinessScore, setReadinessScore] = useState(null);
+  const [gapData, setGapData] = useState(null);
+
+  // Resume Skill Sync State (Day 5)
+  const [syncingSkills, setSyncingSkills] = useState(false);
+  const [syncFeedback, setSyncFeedback] = useState(null); // { type: 'success' | 'error', message: '' }
+
+  // Fetch real authoritative career readiness & skill gap metrics from backend
+  useEffect(() => {
+    const loadStudentMetrics = async () => {
+      setLoadingMetrics(true);
+      try {
+        const [readinessRes, gapRes, profileRes] = await Promise.all([
+          api.getCareerReadiness(targetRole),
+          api.getSkillGapAnalysis({ targetRole }),
+          api.getStudentProfile(),
+        ]);
+
+        if (readinessRes && readinessRes.success && readinessRes.data) {
+          setReadinessScore(readinessRes.data.readinessScore);
+        } else {
+          setReadinessScore(0);
+        }
+
+        if (gapRes && gapRes.success && gapRes.data) {
+          setGapData({
+            readiness_score: gapRes.data.readinessScore ?? 0,
+            gap_percentage: gapRes.data.gapPercentage ?? 100,
+            acquired_skills: gapRes.data.acquiredSkills || [],
+            missing_critical_skills: gapRes.data.missingSkills || [],
+            recommended_courses: gapRes.data.recommendedCourses || [],
+          });
+        }
+
+        if (profileRes && profileRes.success && profileRes.data?.profile?.skills) {
+          const profileSkills = profileRes.data.profile.skills.map((s) => s.name);
+          if (profileSkills.length > 0 && extractedSkills.length === 0) {
+            setExtractedSkills(profileSkills);
+          }
+        }
+      } catch (err) {
+        console.warn('Failed to load authoritative student metrics:', err);
+      } finally {
+        setLoadingMetrics(false);
+      }
+    };
+
+    loadStudentMetrics();
+  }, [targetRole]);
 
   const handleFileChange = (e) => {
     const file = e.target.files[0];
@@ -96,15 +126,23 @@ export default function StudentDashboard() {
     try {
       const res = await api.uploadResumePdf(selectedFile);
       if (res.success) {
-        setPdfUploadResult(res);
-        setExtractedSkills(res.extracted_skills);
-        setSkillDetails(res.skill_details);
-        setPipelineInfo(res.pipeline_metadata);
+        const resumeData = res.data?.resume || res;
+        setPdfUploadResult({
+          filename: resumeData.filename || selectedFile.name,
+          version: resumeData.version || 1,
+          parsing_status: resumeData.extractionStatus || 'completed',
+          extracted_skills: resumeData.extractedSkills || [],
+          page_count: resumeData.pageCount || 1,
+          character_count: resumeData.characterCount || 0,
+        });
+        if (resumeData.extractedSkills && resumeData.extractedSkills.length > 0) {
+          setExtractedSkills(resumeData.extractedSkills);
+        }
       } else {
-        setUploadError(res.detail || 'Failed to parse resume PDF.');
+        setUploadError(res.message || res.detail || 'Failed to upload and parse resume PDF.');
       }
     } catch (err) {
-      setUploadError('Unable to connect to AI microservice on port 8000.');
+      setUploadError('Unable to upload resume. Please check your network and session.');
     } finally {
       setUploading(false);
     }
@@ -135,6 +173,32 @@ export default function StudentDashboard() {
       }
     } catch (err) {
       console.warn('Gap analysis service unreachable:', err);
+    }
+  };
+
+  const handleSyncSkillsToProfile = async () => {
+    if (!extractedSkills || extractedSkills.length === 0) {
+      setSyncFeedback({ type: 'error', message: 'No extracted skills available to import.' });
+      return;
+    }
+
+    setSyncingSkills(true);
+    setSyncFeedback(null);
+
+    try {
+      const res = await api.syncResumeSkills(extractedSkills);
+      if (res.success) {
+        setSyncFeedback({
+          type: 'success',
+          message: `Successfully imported ${res.data.addedCount} new skill(s)! Your profile now contains ${res.data.totalSkills} skills.`
+        });
+      } else {
+        setSyncFeedback({ type: 'error', message: res.message || 'Failed to sync skills to profile.' });
+      }
+    } catch (err) {
+      setSyncFeedback({ type: 'error', message: err.message || 'Network error while synchronizing skills.' });
+    } finally {
+      setSyncingSkills(false);
     }
   };
 
@@ -180,7 +244,15 @@ export default function StudentDashboard() {
           </div>
           <div className="bg-white/10 backdrop-blur rounded-xl p-4 text-center min-w-[130px]">
             <p className="text-xs uppercase font-bold text-brand-200">Career Readiness</p>
-            <p className="text-3xl font-black text-white mt-1">{gapData.readiness_score}%</p>
+            {loadingMetrics ? (
+              <div className="flex items-center justify-center py-2">
+                <Loader2 className="w-5 h-5 text-white animate-spin" />
+              </div>
+            ) : (
+              <p className="text-3xl font-black text-white mt-1">
+                {readinessScore !== null ? `${readinessScore}%` : '0%'}
+              </p>
+            )}
             <p className="text-[10px] text-brand-300 mt-0.5">Role: {targetRole}</p>
           </div>
         </div>
@@ -301,6 +373,43 @@ export default function StudentDashboard() {
                 ))}
               </div>
 
+              {/* Day 5: One-Click Resume Skill Import CTA */}
+              <div className="my-4 p-4 rounded-xl bg-indigo-50/70 border border-indigo-200">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div>
+                    <h3 className="text-xs font-bold text-indigo-900">Sync with Student Profile</h3>
+                    <p className="text-[11px] text-indigo-700 mt-0.5">
+                      Add these {extractedSkills.length} parsed skills directly into your verified profile without manual entry.
+                    </p>
+                  </div>
+                  <button
+                    onClick={handleSyncSkillsToProfile}
+                    disabled={syncingSkills || extractedSkills.length === 0}
+                    className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-lg text-xs font-semibold inline-flex items-center justify-center space-x-1.5 transition-colors shadow-sm whitespace-nowrap"
+                  >
+                    <CheckCircle className="w-3.5 h-3.5" />
+                    <span>{syncingSkills ? 'Importing...' : 'Import Skills to My Profile'}</span>
+                  </button>
+                </div>
+
+                {syncFeedback && (
+                  <div
+                    className={`mt-3 p-2.5 rounded-lg text-xs font-medium flex items-center space-x-2 ${
+                      syncFeedback.type === 'success'
+                        ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
+                        : 'bg-rose-50 text-rose-800 border border-rose-200'
+                    }`}
+                  >
+                    {syncFeedback.type === 'success' ? (
+                      <CheckCircle className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+                    ) : (
+                      <AlertCircle className="w-4 h-4 text-rose-600 flex-shrink-0" />
+                    )}
+                    <span>{syncFeedback.message}</span>
+                  </div>
+                )}
+              </div>
+
               {/* Detailed Skill Evidence Table if available */}
               {skillDetails.length > 0 && (
                 <div className="mt-4 pt-4 border-t border-slate-100 max-h-60 overflow-y-auto">
@@ -359,12 +468,12 @@ export default function StudentDashboard() {
               <div className="mb-4">
                 <div className="flex items-center justify-between text-xs font-semibold mb-1">
                   <span className="text-slate-700">Competency Match</span>
-                  <span className="text-brand-900">{gapData.readiness_score}%</span>
+                  <span className="text-brand-900">{gapData ? `${gapData.readiness_score}%` : '0%'}</span>
                 </div>
                 <div className="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden">
                   <div
                     className="h-full bg-gradient-to-r from-brand-600 to-indigo-600 transition-all duration-500"
-                    style={{ width: `${gapData.readiness_score}%` }}
+                    style={{ width: `${gapData ? gapData.readiness_score : 0}%` }}
                   ></div>
                 </div>
               </div>
@@ -374,10 +483,10 @@ export default function StudentDashboard() {
                 <div>
                   <span className="text-xs font-semibold text-rose-600 flex items-center mb-1.5">
                     <AlertTriangle className="w-3.5 h-3.5 mr-1" />
-                    Missing Critical Skills ({gapData.missing_critical_skills.length}):
+                    Missing Critical Skills ({gapData ? gapData.missing_critical_skills.length : 0}):
                   </span>
                   <div className="flex flex-wrap gap-1.5">
-                    {gapData.missing_critical_skills.length > 0 ? (
+                    {gapData && gapData.missing_critical_skills.length > 0 ? (
                       gapData.missing_critical_skills.map((skill, idx) => (
                         <span
                           key={idx}
@@ -398,25 +507,32 @@ export default function StudentDashboard() {
                     Recommended Learning Roadmap:
                   </span>
                   <div className="space-y-2">
-                    {gapData.recommended_courses.map((course, idx) => (
-                      <div
-                        key={idx}
-                        className="p-2.5 rounded-xl bg-slate-50 border border-slate-200/80 flex items-center justify-between"
-                      >
-                        <div className="flex items-center space-x-2">
-                          <BookOpen className="w-3.5 h-3.5 text-brand-600" />
-                          <span className="text-xs font-medium text-slate-800">{course.title}</span>
+                    {gapData && gapData.recommended_courses.length > 0 ? (
+                      gapData.recommended_courses.map((course, idx) => (
+                        <div
+                          key={idx}
+                          className="p-2.5 rounded-xl bg-slate-50 border border-slate-200/80 flex items-center justify-between"
+                        >
+                          <div className="flex items-center space-x-2">
+                            <BookOpen className="w-3.5 h-3.5 text-brand-600" />
+                            <span className="text-xs font-medium text-slate-800">{course.title}</span>
+                          </div>
+                          <span className="text-[11px] font-semibold text-slate-500">~{course.estimated_hours}h</span>
                         </div>
-                        <span className="text-[11px] font-semibold text-slate-500">~{course.estimated_hours}h</span>
-                      </div>
-                    ))}
+                      ))
+                    ) : (
+                      <span className="text-xs text-slate-400 italic">No courses recommended.</span>
+                    )}
                   </div>
                 </div>
               </div>
             </div>
 
-            <div className="mt-4 pt-3 border-t border-slate-100 text-[10px] text-slate-400">
-              Generated via SkillBridge AI Gap Analysis Engine
+            <div className="mt-4 pt-3 border-t border-slate-100 text-[10px] text-slate-400 flex items-center justify-between">
+              <span>Authoritative Readiness & Gap Engine</span>
+              <Link to="/student/career/readiness" className="text-brand-900 font-semibold hover:underline">
+                View Full Breakdown →
+              </Link>
             </div>
           </div>
         </div>

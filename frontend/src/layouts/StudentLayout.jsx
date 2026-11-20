@@ -8,7 +8,8 @@ export default function StudentLayout({ children }) {
   const navItems = [
     { label: 'Overview', to: '/student/dashboard', icon: Target, end: true },
     { label: 'My Profile', to: '/student/profile', icon: User },
-    { label: 'Browse Opportunities', to: '/student/jobs', icon: Briefcase },
+    { label: 'Full-Time Jobs', to: '/student/jobs', icon: Briefcase },
+    { label: 'Internship Board', to: '/student/internships', icon: Briefcase, badge: 'New' },
     { label: 'My Applications', to: '/student/applications', icon: FileText },
     { label: 'Career Intelligence', to: '/student/career/readiness', icon: Sparkles, badge: 'AI' },
     { label: 'Skill Gap Breakdown', to: '/student/career/gap', icon: Target },

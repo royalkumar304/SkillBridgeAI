@@ -19,15 +19,16 @@ const { getJobApplications } = require('../controllers/applicationController');
 
 const { authenticateToken, optionalAuth } = require('../middleware/authMiddleware');
 const { requireRole } = require('../middleware/roleMiddleware');
+const { publicApiLimiter, searchLimiter } = require('../middleware/rateLimiter');
 
 // POST   /api/v1/jobs — RECRUITER only
 router.post('/', authenticateToken, requireRole('RECRUITER'), createJob);
 
 // GET    /api/v1/jobs — public (supports ?myJobs=true with optional recruiter token)
-router.get('/', optionalAuth, getJobs);
+router.get('/', publicApiLimiter, optionalAuth, getJobs);
 
-// GET    /api/v1/jobs/:id — public
-router.get('/:id', getJobById);
+// GET    /api/v1/jobs/:id — public / optionalAuth (enforces company verification for public visitors)
+router.get('/:id', publicApiLimiter, optionalAuth, getJobById);
 
 // GET    /api/v1/jobs/:id/match — STUDENT only
 router.get('/:id/match', authenticateToken, requireRole('STUDENT'), getJobMatch);

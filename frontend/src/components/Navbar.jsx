@@ -2,6 +2,7 @@ import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Sparkles, LogOut, LayoutDashboard, User } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import NotificationDropdown from './NotificationDropdown';
 
 export default function Navbar() {
   const navigate = useNavigate();
@@ -39,6 +40,7 @@ export default function Navbar() {
           <div className="flex items-center space-x-3">
             {isAuthenticated && user ? (
               <div className="flex items-center space-x-3">
+                <NotificationDropdown />
                 <Link
                   to={getRoleDashboard(user.role)}
                   className="inline-flex items-center space-x-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-brand-50 text-brand-800 hover:bg-brand-100 transition-colors"

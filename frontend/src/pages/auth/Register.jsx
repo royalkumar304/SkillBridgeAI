@@ -116,7 +116,6 @@ export default function Register() {
               >
                 <option value="STUDENT">Student (Job Seeker / Learner)</option>
                 <option value="RECRUITER">Company Recruiter (Employer)</option>
-                <option value="UNIVERSITY_ADMIN">University Administrator / TPO</option>
               </select>
             </div>
 

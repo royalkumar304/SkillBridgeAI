@@ -53,6 +53,16 @@ const jobSchema = new mongoose.Schema(
       type: String,
       default: 'Unpaid / Performance Stipend',
     },
+    duration: {
+      type: String,
+      trim: true,
+      default: '3 Months',
+    },
+    workMode: {
+      type: String,
+      enum: ['remote', 'hybrid', 'on_site'],
+      default: 'remote',
+    },
     requiredSkills: {
       type: [requiredSkillSchema],
       validate: {
@@ -100,6 +110,8 @@ const jobSchema = new mongoose.Schema(
 
 jobSchema.index({ status: 1, deadline: 1 });
 jobSchema.index({ 'requiredSkills.name': 1 });
+jobSchema.index({ status: 1, createdAt: -1 });
+jobSchema.index({ companyId: 1, status: 1 });
 
 module.exports = mongoose.model('Job', jobSchema);
 

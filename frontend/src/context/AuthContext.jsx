@@ -5,55 +5,52 @@ const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
-  const [token, setToken] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Helper to parse JWT payload without external library
-  const parseJwt = (jwtToken) => {
-    try {
-      const base64Url = jwtToken.split('.')[1];
-      const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-      const jsonPayload = decodeURIComponent(
-        atob(base64)
-          .split('')
-          .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
-          .join('')
-      );
-      return JSON.parse(jsonPayload);
-    } catch (e) {
-      return null;
-    }
-  };
-
-  const isTokenExpired = (jwtToken) => {
-    const payload = parseJwt(jwtToken);
-    if (!payload || !payload.exp) return true;
-    return payload.exp * 1000 < Date.now();
-  };
-
+  // Initialize session by verifying cookie with the backend
   useEffect(() => {
-    const storedToken = localStorage.getItem('token');
-    const storedUser = localStorage.getItem('user');
+    let isMounted = true;
 
-    if (storedToken && storedUser) {
-      if (isTokenExpired(storedToken)) {
-        console.warn('[AuthContext] Stored session expired. Logging out.');
-        logout();
-      } else {
-        setToken(storedToken);
-        setUser(JSON.parse(storedUser));
+    const verifySession = async () => {
+      try {
+        const res = await api.getProfile();
+        if (isMounted) {
+          if (res.success && res.data?.user) {
+            setUser(res.data.user);
+          } else {
+            setUser(null);
+          }
+        }
+      } catch (err) {
+        if (isMounted) {
+          setUser(null);
+        }
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
       }
-    }
-    setLoading(false);
+    };
+
+    verifySession();
+
+    // Listen for global session expiration events triggered by HTTP 401
+    const handleSessionExpired = () => {
+      setUser(null);
+    };
+
+    window.addEventListener('skillbridge:session_expired', handleSessionExpired);
+    return () => {
+      isMounted = false;
+      window.removeEventListener('skillbridge:session_expired', handleSessionExpired);
+    };
   }, []);
 
   const login = async (email, password) => {
     const res = await api.login({ email, password });
     if (res.success && res.data) {
-      const { user: authUser, token: authToken } = res.data;
-      localStorage.setItem('token', authToken);
-      localStorage.setItem('user', JSON.stringify(authUser));
-      setToken(authToken);
+      const { user: authUser } = res.data;
+      // Store user info strictly in React state (no localStorage persistence)
       setUser(authUser);
       return { success: true, user: authUser };
     }
@@ -63,20 +60,19 @@ export const AuthProvider = ({ children }) => {
   const register = async (name, email, password, role) => {
     const res = await api.register({ name, email, password, role });
     if (res.success && res.data) {
-      const { user: authUser, token: authToken } = res.data;
-      localStorage.setItem('token', authToken);
-      localStorage.setItem('user', JSON.stringify(authUser));
-      setToken(authToken);
+      const { user: authUser } = res.data;
       setUser(authUser);
       return { success: true, user: authUser };
     }
     return { success: false, message: res.message || 'Registration failed' };
   };
 
-  const logout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    setToken(null);
+  const logout = async () => {
+    try {
+      await api.logout();
+    } catch (e) {
+      // Ignore network errors on logout
+    }
     setUser(null);
   };
 
@@ -96,9 +92,8 @@ export const AuthProvider = ({ children }) => {
     <AuthContext.Provider
       value={{
         user,
-        token,
         loading,
-        isAuthenticated: !!token && !isTokenExpired(token),
+        isAuthenticated: !!user,
         login,
         register,
         logout,

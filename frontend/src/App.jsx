@@ -13,6 +13,7 @@ import StudentProfile from './pages/student/StudentProfile';
 import EditProfile from './pages/student/EditProfile';
 import JobBoard from './pages/student/JobBoard';
 import JobDetails from './pages/student/JobDetails';
+import InternshipBoard from './pages/student/InternshipBoard';
 import MyApplications from './pages/student/MyApplications';
 import CareerReadiness from './pages/student/CareerReadiness';
 import SkillGapAnalysis from './pages/student/SkillGapAnalysis';
@@ -22,12 +23,21 @@ import JobWiseAnalysis from './pages/student/JobWiseAnalysis';
 // Recruiter Portal Pages
 import RecruiterDashboard from './pages/recruiter/RecruiterDashboard';
 import ManageJobs from './pages/recruiter/ManageJobs';
+import ManageInternships from './pages/recruiter/ManageInternships';
 import CreateJob from './pages/recruiter/CreateJob';
 import EditJob from './pages/recruiter/EditJob';
 import JobApplicants from './pages/recruiter/JobApplicants';
+import CompanyProfile from './pages/recruiter/CompanyProfile';
 
 // Admin Portal Pages
 import AdminDashboard from './pages/admin/AdminDashboard';
+import StudentRoster from './pages/admin/StudentRoster';
+import CompanyApprovals from './pages/admin/CompanyApprovals';
+import CurriculumInsights from './pages/admin/CurriculumInsights';
+import IndustryPartners from './pages/admin/IndustryPartners';
+
+// Shared Authenticated Pages
+import Notifications from './pages/Notifications';
 
 export default function App() {
   return (
@@ -69,6 +79,14 @@ export default function App() {
             element={
               <ProtectedRoute allowedRoles={['STUDENT']}>
                 <JobBoard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/student/internships"
+            element={
+              <ProtectedRoute allowedRoles={['STUDENT']}>
+                <InternshipBoard />
               </ProtectedRoute>
             }
           />
@@ -139,6 +157,22 @@ export default function App() {
             }
           />
           <Route
+            path="/recruiter/internships"
+            element={
+              <ProtectedRoute allowedRoles={['RECRUITER']}>
+                <ManageInternships />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/recruiter/profile"
+            element={
+              <ProtectedRoute allowedRoles={['RECRUITER']}>
+                <CompanyProfile />
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/recruiter/jobs/create"
             element={
               <ProtectedRoute allowedRoles={['RECRUITER']}>
@@ -169,6 +203,48 @@ export default function App() {
             element={
               <ProtectedRoute allowedRoles={['UNIVERSITY_ADMIN']}>
                 <AdminDashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/students"
+            element={
+              <ProtectedRoute allowedRoles={['UNIVERSITY_ADMIN']}>
+                <StudentRoster />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/companies"
+            element={
+              <ProtectedRoute allowedRoles={['UNIVERSITY_ADMIN']}>
+                <CompanyApprovals />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/partners"
+            element={
+              <ProtectedRoute allowedRoles={['UNIVERSITY_ADMIN']}>
+                <IndustryPartners />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/curriculum-insights"
+            element={
+              <ProtectedRoute allowedRoles={['UNIVERSITY_ADMIN']}>
+                <CurriculumInsights />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Shared Authenticated Notifications Route */}
+          <Route
+            path="/notifications"
+            element={
+              <ProtectedRoute allowedRoles={['STUDENT', 'RECRUITER', 'UNIVERSITY_ADMIN']}>
+                <Notifications />
               </ProtectedRoute>
             }
           />

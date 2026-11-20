@@ -1,16 +1,40 @@
 /**
  * Client service to communicate with Python FastAPI AI microservice (port 8000).
+ * Authenticates internal requests using X-Internal-Service-Key header.
  */
 const AI_BASE_URL = process.env.AI_SERVICE_URL || 'http://localhost:8000';
 
+const getInternalHeaders = (extraHeaders = {}) => {
+  const serviceKey = process.env.INTERNAL_SERVICE_KEY;
+  const headers = {
+    ...extraHeaders,
+  };
+  if (serviceKey) {
+    headers['X-Internal-Service-Key'] = serviceKey;
+  }
+  return headers;
+};
+
 class AIClientService {
-  static async checkHealth() {
+  static async checkHealth(timeoutMs = 2500) {
     try {
-      const response = await fetch(`${AI_BASE_URL}/health`);
-      return await response.json();
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+      const response = await fetch(`${AI_BASE_URL}/health`, {
+        signal: controller.signal,
+      });
+      clearTimeout(timeoutId);
+      const data = await response.json();
+      return {
+        status: response.ok ? 'HEALTHY' : 'DEGRADED',
+        data,
+      };
     } catch (error) {
-      console.warn(`[AIClientService] AI microservice health check failed: ${error.message}`);
-      return { status: 'OFFLINE', error: error.message };
+      return {
+        status: 'OFFLINE',
+        error: error.name === 'AbortError' ? 'AI microservice health check timed out' : 'AI microservice unreachable',
+      };
     }
   }
 
@@ -18,7 +42,7 @@ class AIClientService {
     try {
       const response = await fetch(`${AI_BASE_URL}/extract-skills`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getInternalHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify({ text: resumeText }),
       });
       return await response.json();
@@ -28,11 +52,35 @@ class AIClientService {
     }
   }
 
+  static async uploadResumePdf(fileBuffer, filename = 'resume.pdf') {
+    try {
+      const boundary = '----SkillBridgeBoundary' + Math.random().toString(36).substring(2);
+      const pre = `--${boundary}\r\nContent-Disposition: form-data; name="file"; filename="${filename}"\r\nContent-Type: application/pdf\r\n\r\n`;
+      const post = `\r\n--${boundary}--\r\n`;
+
+      const preBuf = Buffer.from(pre, 'utf8');
+      const postBuf = Buffer.from(post, 'utf8');
+      const fullBody = Buffer.concat([preBuf, Buffer.isBuffer(fileBuffer) ? fileBuffer : Buffer.from(fileBuffer), postBuf]);
+
+      const response = await fetch(`${AI_BASE_URL}/upload-resume-pdf`, {
+        method: 'POST',
+        headers: getInternalHeaders({
+          'Content-Type': `multipart/form-data; boundary=${boundary}`,
+        }),
+        body: fullBody,
+      });
+      return await response.json();
+    } catch (error) {
+      console.error('[AIClientService] Upload resume PDF failed:', error.message);
+      throw error;
+    }
+  }
+
   static async matchJob(studentSkills, jobSkills, studentCgpa, jobMinCgpa) {
     try {
       const response = await fetch(`${AI_BASE_URL}/match-jobs`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getInternalHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify({
           student_skills: studentSkills,
           job_required_skills: jobSkills,
@@ -51,7 +99,7 @@ class AIClientService {
     try {
       const response = await fetch(`${AI_BASE_URL}/analyze-skill-gap`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getInternalHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify({
           target_role: targetRole,
           acquired_skills: acquiredSkills,
@@ -68,7 +116,7 @@ class AIClientService {
     try {
       const response = await fetch(`${AI_BASE_URL}/career-intelligence/job-gap`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getInternalHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify({
           student_skills: studentSkills,
           job_required_skills: jobRequiredSkills,
@@ -86,7 +134,7 @@ class AIClientService {
     try {
       const response = await fetch(`${AI_BASE_URL}/career-intelligence/readiness`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getInternalHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify({
           target_role: targetRole,
           student_skills: studentSkills,

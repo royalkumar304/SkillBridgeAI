@@ -1,8 +1,11 @@
 const express = require('express');
 const router = express.Router();
-const { getHealthStatus } = require('../controllers/healthController');
+const { getHealthStatus, getReadinessStatus } = require('../controllers/healthController');
 
+// Liveness probe
 router.get('/health', getHealthStatus);
 
-module.exports = router;
+// Readiness probe
+router.get('/ready', getReadinessStatus);
 
+module.exports = router;

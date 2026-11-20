@@ -48,8 +48,21 @@ async def upload_resume_pdf(file: UploadFile = File(...)):
             detail=f"Invalid file type for '{filename}'. Only PDF documents (.pdf) are supported."
         )
 
+    # Validate content-type if provided
+    if file.content_type and file.content_type != "application/pdf" and file.content_type != "application/octet-stream":
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid MIME type '{file.content_type}'. Expected 'application/pdf'."
+        )
+
     # 2. Read bytes and check size
     file_bytes = await file.read()
+    if not file_bytes or len(file_bytes.strip()) == 0:
+        raise HTTPException(
+            status_code=400,
+            detail="Uploaded file is empty. Please upload a valid non-empty PDF."
+        )
+
     if len(file_bytes) > MAX_PDF_SIZE_BYTES:
         raise HTTPException(
             status_code=413,

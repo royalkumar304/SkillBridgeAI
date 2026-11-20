@@ -174,6 +174,29 @@ async function runTests() {
   );
 
   // TEST 3: Recruiter creates and publishes a job
+  // Under Day 5 University Admin Governance, verify recruiter's company first using provisioned admin
+  const adminLogin = await request('/auth/login', {
+    method: 'POST',
+    body: { email: 'admin@univ.edu', password: 'Password@123' },
+  });
+  const adminToken = adminLogin.data?.data?.token;
+
+  // Recruiter triggers company registration
+  await request('/jobs', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${r1Token}` },
+    body: { title: 'Init', description: 'Init', requiredSkills: [{ name: 'React' }], deadline: new Date(Date.now() + 86400000).toISOString() },
+  });
+  const compListRes = await request('/admin/companies', { headers: { Authorization: `Bearer ${adminToken}` } });
+  const r1Company = compListRes.data?.data?.companies?.find((c) => c.recruiter?.email === r1Email);
+  if (r1Company) {
+    await request(`/admin/companies/${r1Company.id}/verify`, {
+      method: 'PATCH',
+      headers: { Authorization: `Bearer ${adminToken}` },
+      body: { verified: true },
+    });
+  }
+
   const jobPayload = {
     title: 'Full Stack MERN Developer Intern',
     description: 'Build production web apps with React, Node.js, MongoDB and FastAPI',

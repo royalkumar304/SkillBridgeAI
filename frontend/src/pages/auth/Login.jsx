@@ -3,6 +3,7 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import MainLayout from '../../layouts/MainLayout';
 import { Sparkles, Lock, Mail, ShieldAlert } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { sanitizeRedirectPath } from '../../utils/safeRedirect';
 
 export default function Login() {
   const navigate = useNavigate();
@@ -26,8 +27,9 @@ export default function Login() {
     try {
       const result = await login(formData.email, formData.password);
       if (result.success && result.user) {
-        const dest = from || getRoleDashboard(result.user.role);
-        navigate(dest, { replace: true });
+        const defaultDest = getRoleDashboard(result.user.role);
+        const safeTarget = from ? sanitizeRedirectPath(from, defaultDest) : defaultDest;
+        navigate(safeTarget, { replace: true });
       } else {
         setError(result.message || 'Invalid email or password');
       }

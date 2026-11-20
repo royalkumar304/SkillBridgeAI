@@ -9,6 +9,10 @@ const Company = require('../models/Company');
 const StudentProfile = require('../models/StudentProfile');
 const AIClientService = require('../services/aiClientService');
 const { successResponse, errorResponse } = require('../utils/responseHelper');
+const { notifyCompanyApprovalPending } = require('../services/notificationService');
+const { isCompanyVerified, getVerifiedCompanyQuery } = require('../utils/verificationPolicy');
+const { createSafeSearchRegex, parsePagination, parseSorting } = require('../utils/querySanitizer');
+const { serializeJob } = require('../utils/responseSerializers');
 
 /**
  * Normalizes status strings (e.g. 'published' -> 'active')
@@ -34,6 +38,8 @@ const createJob = async (req, res) => {
       jobType,
       location,
       stipend,
+      duration,
+      workMode,
       requiredSkills,
       preferredSkills,
       minCGPA,
@@ -62,30 +68,65 @@ const createJob = async (req, res) => {
       );
     }
 
-    // Resolve company reference
-    let targetCompanyId = companyId;
-    let resolvedCompanyName = companyName || 'SkillBridge Partner';
+    // Resolve company reference with strict recruiter-to-company ownership authorization
+    let company = null;
 
-    if (!targetCompanyId || !mongoose.Types.ObjectId.isValid(targetCompanyId)) {
-      // Find or auto-provision company for recruiter
-      let company = await Company.findOne({ recruiterUserId: req.user.id });
+    if (companyId !== undefined && companyId !== null && companyId !== '') {
+      if (!mongoose.Types.ObjectId.isValid(companyId)) {
+        return errorResponse(res, 400, 'Validation Error', 'Invalid companyId format');
+      }
+      company = await Company.findById(companyId);
       if (!company) {
-        const uniqueName = companyName || `${req.user.name || 'Recruiter'} Enterprises`;
+        return errorResponse(res, 404, 'Not Found', 'Specified company does not exist');
+      }
+      // Strict ownership check: Recruiter must be the registered owner of this company
+      if (!company.recruiterUserId || company.recruiterUserId.toString() !== req.user.id) {
+        return errorResponse(
+          res,
+          403,
+          'Forbidden',
+          'You are not authorized to create or manage job postings for this company'
+        );
+      }
+    } else {
+      // Find or auto-provision company belonging to the authenticated recruiter
+      company = await Company.findOne({ recruiterUserId: req.user.id });
+      if (!company) {
+        const uniqueName = companyName || `${req.user.name || 'Recruiter'} Enterprises (${Date.now()})`;
         try {
           company = await Company.create({
             name: uniqueName,
             industry: 'Technology',
             recruiterUserId: req.user.id,
             location: location || 'Remote',
+            verified: false // Unverified by default pending University Admin approval
           });
+          // Notify University Admins about new partner registration
+          notifyCompanyApprovalPending({ company, recruiterUser: req.user }).catch((err) =>
+            console.warn('[createJob] Admin notification failed:', err.message)
+          );
         } catch (compErr) {
           company = await Company.findOne({ recruiterUserId: req.user.id });
         }
       }
-      if (company) {
-        targetCompanyId = company._id;
-        resolvedCompanyName = company.name;
-      }
+    }
+
+    if (!company) {
+      return errorResponse(res, 404, 'Not Found', 'Unable to resolve or create company for recruiter');
+    }
+
+    const targetCompanyId = company._id;
+    const resolvedCompanyName = company.name;
+
+    // COMPANY APPROVAL GATE:
+    // If the company is not verified by University Admin, block publishing
+    if (!isCompanyVerified(company)) {
+      return errorResponse(
+        res,
+        403,
+        'Company Verification Required',
+        'Your company is pending verification by the University Admin. Job postings cannot be published until approved.'
+      );
     }
 
     const job = await Job.create({
@@ -96,6 +137,8 @@ const createJob = async (req, res) => {
       jobType: jobType || 'internship',
       location: location || 'Remote',
       stipend: stipend ? String(stipend) : 'Unpaid / Performance Stipend',
+      duration: duration || '3 Months',
+      workMode: workMode || 'remote',
       requiredSkills,
       preferredSkills: preferredSkills || [],
       minCGPA: minCGPA !== undefined ? Number(minCGPA) : 6.0,
@@ -119,7 +162,7 @@ const createJob = async (req, res) => {
 
 /**
  * GET /api/v1/jobs
- * Returns jobs with optional filters: ?skills=&location=&jobType=&search=&myJobs=true
+ * Returns jobs with optional filters: ?skills=&location=&jobType=&search=&myJobs=true&page=&limit=
  * - If myJobs=true and user is recruiter: returns all jobs posted by that recruiter
  * - Otherwise: returns active/published jobs
  */
@@ -131,39 +174,79 @@ const getJobs = async (req, res) => {
       filter.postedBy = req.user.id;
     } else {
       filter.status = { $in: ['active', 'published', 'ACTIVE', 'PUBLISHED'] };
+      // Public / Student visibility: Only jobs belonging to verified companies are publicly listed
+      const verifiedCompanies = await Company.find(getVerifiedCompanyQuery()).select('_id');
+      const verifiedCompanyIds = verifiedCompanies.map((c) => c._id);
+      filter.companyId = { $in: verifiedCompanyIds };
     }
 
-    if (req.query.location) {
-      filter.location = { $regex: req.query.location, $options: 'i' };
-    }
-
-    if (req.query.jobType) {
-      filter.jobType = req.query.jobType;
-    }
-
-    if (req.query.skills) {
-      const skillsList = req.query.skills.split(',').map((s) => s.trim()).filter(Boolean);
-      if (skillsList.length > 0) {
-        filter['requiredSkills.name'] = { $in: skillsList.map((s) => new RegExp(s, 'i')) };
+    if (req.query.location && typeof req.query.location === 'string') {
+      const locRegex = createSafeSearchRegex(req.query.location);
+      if (locRegex) {
+        filter.location = locRegex;
       }
     }
 
-    if (req.query.search) {
-      const searchRegex = new RegExp(req.query.search, 'i');
-      filter.$or = [
-        { title: searchRegex },
-        { description: searchRegex },
-        { location: searchRegex },
-        { companyName: searchRegex },
-        { 'requiredSkills.name': searchRegex },
-      ];
+    if (req.query.jobType && typeof req.query.jobType === 'string') {
+      filter.jobType = req.query.jobType.trim();
     }
 
-    const jobs = await Job.find(filter)
-      .populate('companyId', 'name website industry location')
-      .sort({ createdAt: -1 });
+    if (req.query.skills && typeof req.query.skills === 'string') {
+      const skillsList = req.query.skills
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean);
+      if (skillsList.length > 0) {
+        const safeSkillRegexes = skillsList
+          .map((s) => createSafeSearchRegex(s))
+          .filter(Boolean);
+        if (safeSkillRegexes.length > 0) {
+          filter['requiredSkills.name'] = { $in: safeSkillRegexes };
+        }
+      }
+    }
 
-    return successResponse(res, 200, 'Jobs retrieved successfully', { jobs, total: jobs.length });
+    if (req.query.search && typeof req.query.search === 'string') {
+      const searchRegex = createSafeSearchRegex(req.query.search);
+      if (searchRegex) {
+        filter.$or = [
+          { title: searchRegex },
+          { description: searchRegex },
+          { location: searchRegex },
+          { companyName: searchRegex },
+          { 'requiredSkills.name': searchRegex },
+        ];
+      }
+    }
+
+    // Bounded Pagination & Safe Sorting
+    const { page, limit, skip } = parsePagination(req.query.page, req.query.limit, 10, 50);
+    const sortObj = parseSorting(req.query.sortBy, req.query.sortOrder, ['createdAt', 'deadline', 'title'], 'createdAt', -1);
+
+    const total = await Job.countDocuments(filter);
+    const rawJobs = await Job.find(filter)
+      .populate('companyId', 'name website industry location logo verified')
+      .populate('postedBy', 'name email')
+      .sort(sortObj)
+      .skip(skip)
+      .limit(limit);
+
+    // Apply explicit response serialization
+    const isOwnerOrAdmin = req.query.myJobs === 'true' && req.user && (req.user.role === 'RECRUITER' || req.user.role === 'UNIVERSITY_ADMIN');
+    const jobs = rawJobs.map((j) =>
+      serializeJob(j, {
+        isOwner: isOwnerOrAdmin && j.postedBy && j.postedBy._id && j.postedBy._id.toString() === req.user.id,
+        isAdmin: req.user && req.user.role === 'UNIVERSITY_ADMIN',
+      })
+    );
+
+    return successResponse(res, 200, 'Jobs retrieved successfully', {
+      jobs,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit) || 1,
+    });
   } catch (error) {
     console.error('[jobController.getJobs]', error);
     return errorResponse(res, 500, 'Server Error', error.message);
@@ -172,19 +255,48 @@ const getJobs = async (req, res) => {
 
 /**
  * GET /api/v1/jobs/:id
- * Public — single job details
+ * Public — single job details (PII redacted for public viewers)
  */
 const getJobById = async (req, res) => {
   try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return errorResponse(res, 400, 'Validation Error', 'Invalid job ID format');
+    }
+
     const job = await Job.findById(req.params.id)
-      .populate('companyId', 'name website industry location')
+      .populate('companyId', 'name website industry location logo verified verificationStatus')
       .populate('postedBy', 'name email');
 
     if (!job) {
       return errorResponse(res, 404, 'Not Found', 'Job not found');
     }
 
-    return successResponse(res, 200, 'Job retrieved successfully', { job });
+    // Public Visibility Check: An unverified or revoked company's job must not be publicly accessible
+    const isOwner = req.user && job.postedBy && job.postedBy._id && job.postedBy._id.toString() === req.user.id;
+    const isAdmin = req.user && req.user.role === 'UNIVERSITY_ADMIN';
+
+    if (!isOwner && !isAdmin) {
+      if (!isCompanyVerified(job.companyId)) {
+        return errorResponse(
+          res,
+          403,
+          'Forbidden',
+          'This posting belongs to an unaccredited or unverified company and is not publicly accessible'
+        );
+      }
+      if (!['active', 'published', 'ACTIVE', 'PUBLISHED'].includes(job.status)) {
+        return errorResponse(
+          res,
+          403,
+          'Forbidden',
+          'This job posting is closed or not currently active'
+        );
+      }
+    }
+
+    const serialized = serializeJob(job, { isOwner, isAdmin });
+
+    return successResponse(res, 200, 'Job retrieved successfully', { job: serialized });
   } catch (error) {
     console.error('[jobController.getJobById]', error);
     return errorResponse(res, 500, 'Server Error', error.message);
@@ -197,6 +309,10 @@ const getJobById = async (req, res) => {
  */
 const updateJob = async (req, res) => {
   try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return errorResponse(res, 400, 'Validation Error', 'Invalid job ID format');
+    }
+
     const job = await Job.findById(req.params.id);
 
     if (!job) {
@@ -205,6 +321,15 @@ const updateJob = async (req, res) => {
 
     if (!job.postedBy || job.postedBy.toString() !== req.user.id) {
       return errorResponse(res, 403, 'Forbidden', 'You can only edit jobs you posted');
+    }
+
+    // Verify company ownership of the job
+    let company = null;
+    if (job.companyId) {
+      company = await Company.findById(job.companyId);
+      if (company && company.recruiterUserId && company.recruiterUserId.toString() !== req.user.id) {
+        return errorResponse(res, 403, 'Forbidden', 'You do not own the company associated with this job');
+      }
     }
 
     const allowedUpdates = [
@@ -227,7 +352,18 @@ const updateJob = async (req, res) => {
     for (const key of allowedUpdates) {
       if (req.body[key] !== undefined) {
         if (key === 'status') {
-          updates[key] = normalizeStatus(req.body[key]);
+          const norm = normalizeStatus(req.body[key]);
+          if (['active', 'published'].includes(norm)) {
+            if (!isCompanyVerified(company)) {
+              return errorResponse(
+                res,
+                403,
+                'Company Verification Required',
+                'Your company is not verified by University Admin. Jobs cannot be activated or published until approved.'
+              );
+            }
+          }
+          updates[key] = norm;
         } else {
           updates[key] = req.body[key];
         }
@@ -267,6 +403,10 @@ const updateJobStatus = async (req, res) => {
       return errorResponse(res, 400, 'Validation Error', "status must be one of: 'active', 'closed', 'draft', 'published'");
     }
 
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return errorResponse(res, 400, 'Validation Error', 'Invalid job ID format');
+    }
+
     const job = await Job.findById(req.params.id);
 
     if (!job) {
@@ -275,6 +415,25 @@ const updateJobStatus = async (req, res) => {
 
     if (!job.postedBy || job.postedBy.toString() !== req.user.id) {
       return errorResponse(res, 403, 'Forbidden', 'You can only change status of jobs you posted');
+    }
+
+    // Verify company ownership and verification status of the job
+    if (job.companyId) {
+      const company = await Company.findById(job.companyId);
+      if (company && company.recruiterUserId && company.recruiterUserId.toString() !== req.user.id) {
+        return errorResponse(res, 403, 'Forbidden', 'You do not own the company associated with this job');
+      }
+      // If recruiter attempts to activate/publish job, require verified company
+      if (['active', 'published'].includes(normalized)) {
+        if (!isCompanyVerified(company)) {
+          return errorResponse(
+            res,
+            403,
+            'Company Verification Required',
+            'Your company is not verified by University Admin. Jobs cannot be activated or published until approved.'
+          );
+        }
+      }
     }
 
     job.status = normalized;
@@ -293,6 +452,10 @@ const updateJobStatus = async (req, res) => {
  */
 const deleteJob = async (req, res) => {
   try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return errorResponse(res, 400, 'Validation Error', 'Invalid job ID format');
+    }
+
     const job = await Job.findById(req.params.id);
 
     if (!job) {
@@ -301,6 +464,14 @@ const deleteJob = async (req, res) => {
 
     if (!job.postedBy || job.postedBy.toString() !== req.user.id) {
       return errorResponse(res, 403, 'Forbidden', 'You can only delete jobs you posted');
+    }
+
+    // Verify company ownership of the job
+    if (job.companyId) {
+      const company = await Company.findById(job.companyId);
+      if (company && company.recruiterUserId && company.recruiterUserId.toString() !== req.user.id) {
+        return errorResponse(res, 403, 'Forbidden', 'You do not own the company associated with this job');
+      }
     }
 
     job.status = 'closed';
@@ -319,6 +490,10 @@ const deleteJob = async (req, res) => {
  */
 const getJobMatch = async (req, res) => {
   try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return errorResponse(res, 400, 'Validation Error', 'Invalid job ID format');
+    }
+
     const job = await Job.findById(req.params.id);
     if (!job) {
       return errorResponse(res, 404, 'Not Found', 'Job not found');

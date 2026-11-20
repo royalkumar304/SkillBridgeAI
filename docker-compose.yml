@@ -1,0 +1,112 @@
+version: '3.8'
+
+services:
+  # MongoDB Database Service
+  mongodb:
+    image: mongo:7.0
+    container_name: skillbridge-mongodb
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_DATABASE: skillbridge_ai
+    volumes:
+      - mongo-data:/data/db
+    networks:
+      - skillbridge-network
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Python FastAPI AI Microservice
+  ai-service:
+    build:
+      context: ./ai-service
+      dockerfile: Dockerfile
+    container_name: skillbridge-ai-service
+    restart: unless-stopped
+    expose:
+      - "8000"
+    environment:
+      - PORT=8000
+      - HOST=0.0.0.0
+      - DEBUG=False
+      - ENVIRONMENT=production
+      - INTERNAL_SERVICE_KEY=${INTERNAL_SERVICE_KEY}
+      - ALLOWED_ORIGINS=http://localhost:5173,http://localhost:5001,http://frontend:80
+    networks:
+      - skillbridge-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:8000/health"]
+      interval: 20s
+      timeout: 5s
+      retries: 3
+
+  # Node.js Express Backend API
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: skillbridge-backend
+    restart: unless-stopped
+    ports:
+      - "5001:5001"
+    environment:
+      - PORT=5001
+      - NODE_ENV=production
+      - MONGO_URI=mongodb://mongodb:27017/skillbridge_ai
+      - JWT_SECRET=${JWT_SECRET}
+      - CSRF_SIGNING_SECRET=${CSRF_SIGNING_SECRET}
+      - JWT_EXPIRES_IN=7d
+      - JWT_ISSUER=skillbridge-ai
+      - JWT_AUDIENCE=skillbridge-users
+      - AI_SERVICE_URL=http://ai-service:8000
+      - INTERNAL_SERVICE_KEY=${INTERNAL_SERVICE_KEY}
+      - CLIENT_URL=http://localhost:5173
+      - STORAGE_LOCAL_DIR=/app/storage/resumes
+    volumes:
+      - resume-storage:/app/storage/resumes
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    networks:
+      - skillbridge-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:5001/api/v1/health"]
+      interval: 20s
+      timeout: 5s
+      retries: 3
+
+  # React Vite Frontend (Served by NGINX)
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        - VITE_API_BASE_URL=http://localhost:5001/api/v1
+    container_name: skillbridge-frontend
+    restart: unless-stopped
+    ports:
+      - "5173:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - skillbridge-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:80/"]
+      interval: 20s
+      timeout: 5s
+      retries: 3
+
+networks:
+  skillbridge-network:
+    driver: bridge
+
+volumes:
+  mongo-data:
+    driver: local
+  resume-storage:
+    driver: local

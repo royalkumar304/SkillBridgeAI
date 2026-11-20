@@ -72,6 +72,29 @@ async function runAuthOwnershipSuite() {
 
   assert(sA?.token && sB?.token && rA?.token && rB?.token, 'Accounts initialized with JWT tokens');
 
+  // Verify Recruiter Acme's company via University Admin
+  const adminLogin = await request('/auth/login', {
+    method: 'POST',
+    body: { email: 'admin@univ.edu', password: 'Password@123' },
+  });
+  const adminToken = adminLogin.data?.data?.token;
+
+  // Trigger company auto-provisioning
+  await request('/jobs', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${rA.token}` },
+    body: { title: 'Init', description: 'Init', requiredSkills: [{ name: 'React' }], deadline: new Date(Date.now() + 86400000).toISOString() },
+  });
+  const compListRes = await request('/admin/companies', { headers: { Authorization: `Bearer ${adminToken}` } });
+  const rACompany = compListRes.data?.data?.companies?.find((c) => c.recruiter?.email === `recruiter_acme_${ts}@acme.com`);
+  if (rACompany) {
+    await request(`/admin/companies/${rACompany.id}/verify`, {
+      method: 'PATCH',
+      headers: { Authorization: `Bearer ${adminToken}` },
+      body: { verified: true },
+    });
+  }
+
   // 1. Role-based: Student cannot post job (requireRole('RECRUITER') → 403)
   const studentPostJob = await request('/jobs', {
     method: 'POST',

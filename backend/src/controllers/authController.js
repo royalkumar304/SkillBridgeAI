@@ -1,18 +1,25 @@
 const jwt = require('jsonwebtoken');
 const { User, StudentProfile, Company } = require('../models');
 const { successResponse, errorResponse } = require('../utils/responseHelper');
+const { getJwtConfig } = require('../config/jwt');
+const { AUTH_COOKIE_NAME, getAuthCookieOptions, getClearCookieOptions } = require('../config/cookie');
 
 const generateToken = (user) => {
+  const config = getJwtConfig();
   return jwt.sign(
     {
-      id: user._id,
+      id: user._id.toString(),
       email: user.email,
       role: user.role,
       name: user.name,
+      tokenVersion: user.tokenVersion || 0,
     },
-    process.env.JWT_SECRET || 'super_secret_jwt_key_skillbridge_2026',
+    config.secret,
     {
-      expiresIn: process.env.JWT_EXPIRES_IN || '7d',
+      algorithm: config.algorithm,
+      expiresIn: config.expiresIn,
+      issuer: config.issuer,
+      audience: config.audience,
     }
   );
 };
@@ -30,14 +37,20 @@ const register = async (req, res, next) => {
       return errorResponse(res, 400, 'Validation Error', 'Password must be at least 6 characters long');
     }
 
-    const assignedRole = role ? role.toUpperCase() : 'STUDENT';
-    const validRoles = ['STUDENT', 'UNIVERSITY_ADMIN', 'RECRUITER'];
-    if (!validRoles.includes(assignedRole)) {
+    if (role !== undefined && typeof role !== 'string') {
+      return errorResponse(res, 400, 'Invalid Registration Role', 'Role parameter must be a string');
+    }
+
+    const assignedRole = (typeof role === 'string' && role.trim()) ? role.trim().toUpperCase() : 'STUDENT';
+    const allowedPublicRoles = ['STUDENT', 'RECRUITER'];
+
+    // Explicit security check: Prevent privilege escalation via public registration
+    if (assignedRole === 'UNIVERSITY_ADMIN' || assignedRole === 'ADMIN' || !allowedPublicRoles.includes(assignedRole)) {
       return errorResponse(
         res,
         400,
-        'Validation Error',
-        `Invalid role: ${role}. Must be one of [${validRoles.join(', ')}]`
+        'Invalid Registration Role',
+        'Direct registration for administrative roles is prohibited. Public registration is restricted to STUDENT and RECRUITER only.'
       );
     }
 
@@ -61,6 +74,9 @@ const register = async (req, res, next) => {
 
     const token = generateToken(newUser);
 
+    // Set secure HttpOnly authentication cookie
+    res.cookie(AUTH_COOKIE_NAME, token, getAuthCookieOptions());
+
     return successResponse(res, 201, 'User registered successfully', {
       user: {
         id: newUser._id,
@@ -70,7 +86,7 @@ const register = async (req, res, next) => {
         isVerified: newUser.isVerified,
         createdAt: newUser.createdAt,
       },
-      token,
+      token, // Kept in body for test client backward compatibility
     });
   } catch (error) {
     next(error);
@@ -101,6 +117,9 @@ const login = async (req, res, next) => {
 
     const token = generateToken(user);
 
+    // Set secure HttpOnly authentication cookie
+    res.cookie(AUTH_COOKIE_NAME, token, getAuthCookieOptions());
+
     return successResponse(res, 200, 'Login successful', {
       user: {
         id: user._id,
@@ -109,7 +128,7 @@ const login = async (req, res, next) => {
         role: user.role,
         isVerified: user.isVerified,
       },
-      token,
+      token, // Kept in body for test client backward compatibility
     });
   } catch (error) {
     next(error);
@@ -138,9 +157,23 @@ const getMe = async (req, res, next) => {
   }
 };
 
+const logout = async (req, res, next) => {
+  try {
+    // Increment user tokenVersion on the server to immediately invalidate all existing JWTs
+    if (req.user && req.user.id) {
+      await User.findByIdAndUpdate(req.user.id, { $inc: { tokenVersion: 1 } });
+    }
+    res.clearCookie(AUTH_COOKIE_NAME, getClearCookieOptions());
+    return successResponse(res, 200, 'Logged out successfully');
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   register,
   login,
   getMe,
+  logout,
 };
 

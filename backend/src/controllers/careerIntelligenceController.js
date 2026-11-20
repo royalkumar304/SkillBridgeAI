@@ -10,6 +10,7 @@ const SkillGapReport = require('../models/SkillGapReport');
 const Recommendation = require('../models/Recommendation');
 const AIClientService = require('../services/aiClientService');
 const { successResponse, errorResponse } = require('../utils/responseHelper');
+const { calculateCareerReadinessAuthoritative } = require('../utils/readinessCalculator');
 
 const COMPLETION_FIELDS = [
   'university',
@@ -109,35 +110,21 @@ const getCareerReadiness = async (req, res) => {
         profileCompleteness: completeness,
       });
     } catch (aiErr) {
-      console.warn('[careerIntelligence.getCareerReadiness] AI service offline, using deterministic fallback');
+      console.warn('[careerIntelligence.getCareerReadiness] AI service offline, using authoritative deterministic engine');
       
-      // Local fallback calculation
-      const benchmarkSkills = ['React', 'Node.js', 'Express', 'MongoDB', 'JavaScript', 'REST API', 'Git'];
-      const studentSkillSet = new Set(studentSkills.map((s) => s.name.toLowerCase()));
-      const matched = benchmarkSkills.filter((b) => studentSkillSet.has(b.toLowerCase()));
-      const missing = benchmarkSkills.filter((b) => !studentSkillSet.has(b.toLowerCase()));
+      const authResult = calculateCareerReadinessAuthoritative(profile, targetRole, completeness);
 
-      const hasSkills = studentSkills.length > 0;
-      const skillScore = hasSkills ? Math.round((matched.length / benchmarkSkills.length) * 50) : 0;
-      const projectScore = Math.min(20, projects.length * 5);
-      const expScore = Math.min(10, experience.length * 5);
-      const academicScore = Math.round((completeness / 100) * 10 + (profile.cgpa >= 7 ? 10 : profile.cgpa >= 6 ? 6 : 0));
-      const totalScore = hasSkills ? Math.min(100, skillScore + projectScore + expScore + academicScore) : 0;
-
-      return successResponse(res, 200, 'Career readiness evaluated (fallback)', {
-        sufficientData: hasSkills,
-        readinessScore: totalScore,
-        targetRole,
-        message: hasSkills ? 'Evaluated using deterministic fallback engine.' : 'Please add skills to view readiness score.',
-        breakdown: {
-          skillCoverageScore: skillScore,
-          practicalEvidenceScore: projectScore + expScore,
-          academicCompletenessScore: academicScore,
-        },
-        matchedBenchmarkSkills: matched,
-        missingBenchmarkSkills: missing,
-        improvementAreas: missing.length ? [`Learn core skills: ${missing.slice(0, 3).join(', ')}`] : ['Keep skills up to date'],
+      return successResponse(res, 200, 'Career readiness evaluated (deterministic fallback)', {
+        sufficientData: authResult.sufficientData,
+        readinessScore: authResult.readinessScore,
+        targetRole: authResult.targetRole,
+        message: authResult.message,
+        breakdown: authResult.breakdown,
+        matchedBenchmarkSkills: authResult.matchedBenchmarkSkills,
+        missingBenchmarkSkills: authResult.missingBenchmarkSkills,
+        improvementAreas: authResult.improvementAreas,
         profileCompleteness: completeness,
+        source: 'deterministic_fallback',
       });
     }
   } catch (error) {
@@ -275,13 +262,31 @@ const getSkillGapAnalysis = async (req, res) => {
       try {
         roleResult = await AIClientService.analyzeSkillGap(selectedRole, skillNames);
       } catch (aiErr) {
+        // Deterministic role skill gap calculation based on real student skills
+        const benchmarks = {
+          'Full Stack Developer': ['React', 'Node.js', 'Express', 'MongoDB', 'JavaScript', 'REST API', 'Git'],
+          'Frontend Developer': ['React', 'JavaScript', 'HTML5', 'CSS3', 'Tailwind CSS', 'TypeScript', 'Git'],
+          'Backend Developer': ['Node.js', 'Express', 'MongoDB', 'PostgreSQL', 'REST API', 'Docker', 'Git'],
+          'Data Scientist': ['Python', 'Pandas', 'NumPy', 'Scikit-Learn', 'SQL', 'Data Visualization'],
+          'AI / ML Engineer': ['Python', 'PyTorch', 'TensorFlow', 'NLP', 'Computer Vision', 'Git'],
+          'Cloud / DevOps Engineer': ['Linux', 'Docker', 'Kubernetes', 'AWS', 'CI/CD', 'Git'],
+          'Software Engineer': ['Data Structures', 'Algorithms', 'Java', 'Python', 'SQL', 'Git'],
+        };
+        const roleBenchmark = benchmarks[selectedRole] || benchmarks['Full Stack Developer'];
+        const studentSkillLower = new Set(skillNames.map((s) => s.toLowerCase()));
+        const matched = roleBenchmark.filter((b) => studentSkillLower.has(b.toLowerCase()));
+        const missing = roleBenchmark.filter((b) => !studentSkillLower.has(b.toLowerCase()));
+        const readiness = roleBenchmark.length > 0 ? Number(((matched.length / roleBenchmark.length) * 100).toFixed(1)) : 0;
+        const gap = Number((100.0 - readiness).toFixed(1));
+
         roleResult = {
           target_role: selectedRole,
-          readiness_score: 75.0,
-          gap_percentage: 25.0,
-          acquired_skills: skillNames,
-          missing_critical_skills: ['Docker'],
-          recommended_courses: [{ skill: 'Docker', title: 'Docker Essentials', estimated_hours: 10 }],
+          readiness_score: readiness,
+          gap_percentage: gap,
+          acquired_skills: matched,
+          missing_critical_skills: missing,
+          recommended_courses: missing.map((m) => ({ skill: m, title: `Practical Guide to ${m}`, estimated_hours: 12 })),
+          source: 'deterministic_fallback',
         };
       }
 
@@ -293,6 +298,7 @@ const getSkillGapAnalysis = async (req, res) => {
         acquiredSkills: roleResult.acquired_skills,
         missingSkills: roleResult.missing_critical_skills,
         recommendedCourses: roleResult.recommended_courses,
+        source: roleResult.source || 'ai_service',
       });
     }
   } catch (error) {
@@ -394,7 +400,15 @@ const getJobWiseAnalysis = async (req, res) => {
     const studentMap = new Map();
     studentSkills.forEach((s) => studentMap.set(s.name.toLowerCase(), s.level));
 
-    const jobs = await Job.find({ status: { $in: ['active', 'published'] } })
+    // Discovery policy: only recommend jobs from verified companies (canonical policy)
+    const { getVerifiedCompanyQuery } = require('../utils/verificationPolicy');
+    const verifiedCompanies = await require('../models/Company').find(getVerifiedCompanyQuery()).select('_id');
+    const verifiedCompanyIds = verifiedCompanies.map((c) => c._id);
+
+    const jobs = await Job.find({
+      status: { $in: ['active', 'published'] },
+      companyId: { $in: verifiedCompanyIds },
+    })
       .populate('companyId', 'name location')
       .sort({ createdAt: -1 })
       .limit(20);
