@@ -2,7 +2,7 @@ import React from 'react';
 import Navbar from '../components/Navbar';
 import Sidebar from '../components/Sidebar';
 import Footer from '../components/Footer';
-import { Building2, PlusCircle, Users, CheckSquare, BarChart, Briefcase, Building } from 'lucide-react';
+import { Building2, PlusCircle, CheckSquare, Briefcase, Building } from 'lucide-react';
 
 export default function RecruiterLayout({ children }) {
   const navItems = [
@@ -14,14 +14,13 @@ export default function RecruiterLayout({ children }) {
   ];
 
   return (
-    <div className="min-h-screen flex flex-col bg-slate-50">
+    <div className="min-h-screen flex flex-col bg-[#0B1020] text-slate-100">
       <Navbar />
-      <div className="flex-1 max-w-7xl w-full mx-auto flex">
+      <div className="flex-1 max-w-7xl w-full mx-auto flex border-x border-slate-800/80">
         <Sidebar title="Recruiter Desk" roleLabel="Industry Partner" items={navItems} />
-        <main className="flex-1 p-6 md:p-8 overflow-y-auto">{children}</main>
+        <main className="flex-1 p-6 md:p-8 overflow-y-auto bg-[#0B1020]">{children}</main>
       </div>
       <Footer />
     </div>
   );
 }
-

@@ -1,141 +1,213 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import MainLayout from '../../layouts/MainLayout';
-import { Sparkles, User, Mail, Lock, ShieldAlert } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import NexPathraLogo from '../../components/NexPathraLogo';
+import { Lock, Mail, User, Building2, AlertCircle, ArrowRight } from 'lucide-react';
 
 export default function Register() {
-  const navigate = useNavigate();
-  const { register, getRoleDashboard } = useAuth();
-
+  const [role, setRole] = useState('STUDENT');
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     password: '',
-    role: 'STUDENT',
+    companyName: '',
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const { register, getRoleDashboard } = useAuth();
+  const navigate = useNavigate();
+
+  const handleChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+    if (error) setError('');
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError('');
     setLoading(true);
+    setError('');
 
     try {
-      const result = await register(
-        formData.name,
-        formData.email,
-        formData.password,
-        formData.role
-      );
+      const payload = {
+        name: formData.name,
+        email: formData.email,
+        password: formData.password,
+        role: role,
+        ...(role === 'RECRUITER' ? { companyName: formData.companyName } : {}),
+      };
 
-      if (result.success && result.user) {
-        navigate(getRoleDashboard(result.user.role), { replace: true });
+      const res = await register(payload);
+      if (res && res.user) {
+        navigate(getRoleDashboard(res.user.role));
       } else {
-        setError(result.message || 'Registration failed');
+        navigate('/');
       }
     } catch (err) {
-      setError('Could not reach backend service. Verify Express is running on port 5001.');
+      setError(err.response?.data?.message || 'Registration failed. Please check your details and try again.');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <MainLayout>
-      <div className="py-16 px-4 sm:px-6 lg:px-8 max-w-md mx-auto">
-        <div className="bg-white p-8 rounded-2xl border border-slate-200 shadow-sm">
-          <div className="text-center mb-6">
-            <div className="w-12 h-12 bg-brand-50 text-brand-900 rounded-xl flex items-center justify-center mx-auto mb-3">
-              <Sparkles className="w-6 h-6 text-brand-600" />
-            </div>
-            <h2 className="text-2xl font-bold text-brand-900">Create your Account</h2>
-            <p className="text-xs text-slate-500 mt-1">Join the SkillBridge AI Collaboration Network</p>
+    <div className="min-h-screen bg-[#0B1020] flex flex-col justify-center py-12 sm:px-6 lg:px-8 relative overflow-hidden">
+      {/* Background Ambient Glow */}
+      <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[550px] h-[350px] bg-gradient-to-tr from-blue-600/10 via-indigo-600/10 to-violet-600/10 blur-[110px] rounded-full pointer-events-none"></div>
+
+      <div className="sm:mx-auto sm:w-full sm:max-w-md relative z-10 text-center">
+        <Link to="/" className="inline-block mb-6">
+          <NexPathraLogo size="lg" showTagline={true} />
+        </Link>
+        <h2 className="text-2xl font-black text-white tracking-tight">Create your NexPathra account</h2>
+        <p className="mt-2 text-sm text-slate-400">
+          Already registered?{' '}
+          <Link to="/login" className="font-semibold text-blue-400 hover:text-blue-300">
+            Sign in
+          </Link>
+        </p>
+      </div>
+
+      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md relative z-10">
+        <div className="bg-[#17233A] py-8 px-6 shadow-2xl border border-slate-800 rounded-2xl sm:px-10">
+          {/* Role Selection Tabs */}
+          <div className="grid grid-cols-2 gap-3 mb-6 p-1 bg-[#111A2E] rounded-xl border border-slate-800">
+            <button
+              type="button"
+              onClick={() => setRole('STUDENT')}
+              className={`py-2 px-3 text-xs font-bold rounded-lg transition-all ${
+                role === 'STUDENT'
+                  ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-sm'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              Student Portal
+            </button>
+            <button
+              type="button"
+              onClick={() => setRole('RECRUITER')}
+              className={`py-2 px-3 text-xs font-bold rounded-lg transition-all ${
+                role === 'RECRUITER'
+                  ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-sm'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              Recruiter Portal
+            </button>
           </div>
 
           {error && (
-            <div className="mb-4 p-3 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-start space-x-2">
-              <ShieldAlert className="w-4 h-4 flex-shrink-0 mt-0.5" />
+            <div className="mb-6 p-4 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 flex items-start space-x-3 text-sm">
+              <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
               <span>{error}</span>
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form className="space-y-4" onSubmit={handleSubmit}>
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">Full Name</label>
+              <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
+                Full Name
+              </label>
               <div className="relative">
-                <User className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                  <User className="w-4 h-4" />
+                </div>
                 <input
+                  id="name"
+                  name="name"
                   type="text"
                   required
                   value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  placeholder="e.g. Arjun Sharma"
-                  className="w-full pl-9 pr-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500"
+                  onChange={handleChange}
+                  placeholder="Jane Doe"
+                  className="w-full pl-10 pr-4 py-2.5 bg-[#111A2E] border border-slate-700/80 rounded-xl text-white placeholder-slate-500 focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm transition-all"
                 />
               </div>
             </div>
 
+            {role === 'RECRUITER' && (
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
+                  Company Name
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                    <Building2 className="w-4 h-4" />
+                  </div>
+                  <input
+                    id="companyName"
+                    name="companyName"
+                    type="text"
+                    required
+                    value={formData.companyName}
+                    onChange={handleChange}
+                    placeholder="Acme Corp"
+                    className="w-full pl-10 pr-4 py-2.5 bg-[#111A2E] border border-slate-700/80 rounded-xl text-white placeholder-slate-500 focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm transition-all"
+                  />
+                </div>
+              </div>
+            )}
+
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">Email Address</label>
+              <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
+                Email Address
+              </label>
               <div className="relative">
-                <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                  <Mail className="w-4 h-4" />
+                </div>
                 <input
+                  id="email"
+                  name="email"
                   type="email"
+                  autoComplete="email"
                   required
                   value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  placeholder="arjun@university.edu"
-                  className="w-full pl-9 pr-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500"
+                  onChange={handleChange}
+                  placeholder="name@organization.com"
+                  className="w-full pl-10 pr-4 py-2.5 bg-[#111A2E] border border-slate-700/80 rounded-xl text-white placeholder-slate-500 focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm transition-all"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">Password</label>
+              <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
+                Password
+              </label>
               <div className="relative">
-                <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                  <Lock className="w-4 h-4" />
+                </div>
                 <input
+                  id="password"
+                  name="password"
                   type="password"
+                  autoComplete="new-password"
                   required
                   value={formData.password}
-                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  placeholder="At least 6 characters"
-                  className="w-full pl-9 pr-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500"
+                  onChange={handleChange}
+                  placeholder="••••••••"
+                  className="w-full pl-10 pr-4 py-2.5 bg-[#111A2E] border border-slate-700/80 rounded-xl text-white placeholder-slate-500 focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm transition-all"
                 />
               </div>
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">Select Role</label>
-              <select
-                value={formData.role}
-                onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-                className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 bg-white"
-              >
-                <option value="STUDENT">Student (Job Seeker / Learner)</option>
-                <option value="RECRUITER">Company Recruiter (Employer)</option>
-              </select>
             </div>
 
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-2.5 px-4 bg-brand-900 hover:bg-brand-800 text-white rounded-lg text-sm font-semibold transition-colors disabled:opacity-50"
+              className="w-full flex items-center justify-center space-x-2 py-3 px-4 rounded-xl text-sm font-semibold text-white bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600 hover:from-blue-500 hover:to-violet-500 shadow-lg shadow-blue-900/30 transition-all hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed mt-4"
             >
-              {loading ? 'Registering...' : 'Register Account'}
+              {loading ? (
+                <span>Registering...</span>
+              ) : (
+                <>
+                  <span>Create Account</span>
+                  <ArrowRight className="w-4 h-4" />
+                </>
+              )}
             </button>
           </form>
-
-          <div className="mt-6 text-center text-xs text-slate-500">
-            Already have an account?{' '}
-            <Link to="/login" className="font-semibold text-brand-700 hover:text-brand-900">
-              Sign in
-            </Link>
-          </div>
         </div>
       </div>
-    </MainLayout>
+    </div>
   );
 }

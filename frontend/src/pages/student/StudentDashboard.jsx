@@ -44,7 +44,7 @@ export default function StudentDashboard() {
 
   // Resume Skill Sync State (Day 5)
   const [syncingSkills, setSyncingSkills] = useState(false);
-  const [syncFeedback, setSyncFeedback] = useState(null); // { type: 'success' | 'error', message: '' }
+  const [syncFeedback, setSyncFeedback] = useState(null);
 
   // Fetch real authoritative career readiness & skill gap metrics from backend
   useEffect(() => {
@@ -58,9 +58,7 @@ export default function StudentDashboard() {
         ]);
 
         if (readinessRes && readinessRes.success && readinessRes.data) {
-          setReadinessScore(readinessRes.data.readinessScore);
-        } else {
-          setReadinessScore(0);
+          setReadinessScore(readinessRes.data.overall_readiness_score ?? readinessRes.data.readiness_score ?? 0);
         }
 
         if (gapRes && gapRes.success && gapRes.data) {
@@ -73,14 +71,13 @@ export default function StudentDashboard() {
           });
         }
 
-        if (profileRes && profileRes.success && profileRes.data?.profile?.skills) {
-          const profileSkills = profileRes.data.profile.skills.map((s) => s.name);
-          if (profileSkills.length > 0 && extractedSkills.length === 0) {
-            setExtractedSkills(profileSkills);
+        if (profileRes && profileRes.success && profileRes.data && profileRes.data.skills) {
+          if (extractedSkills.length === 0) {
+            setExtractedSkills(profileRes.data.skills);
           }
         }
       } catch (err) {
-        console.warn('Failed to load authoritative student metrics:', err);
+        console.warn('Could not load student metrics from server:', err);
       } finally {
         setLoadingMetrics(false);
       }
@@ -92,21 +89,16 @@ export default function StudentDashboard() {
   const handleFileChange = (e) => {
     const file = e.target.files[0];
     setUploadError('');
-    setPdfUploadResult(null);
-
     if (!file) return;
 
-    // Validate PDF file extension
-    if (!file.name.toLowerCase().endsWith('.pdf') && file.type !== 'application/pdf') {
-      setUploadError('Invalid file format. Please select a valid PDF document (.pdf).');
+    if (file.type !== 'application/pdf' && !file.name.toLowerCase().endsWith('.pdf')) {
+      setUploadError('Invalid file type. Please upload a PDF document (.pdf).');
       setSelectedFile(null);
       return;
     }
 
-    // Validate size (max 5MB)
-    const maxSize = 5 * 1024 * 1024;
-    if (file.size > maxSize) {
-      setUploadError(`File is too large (${(file.size / (1024 * 1024)).toFixed(2)}MB). Maximum allowed size is 5MB.`);
+    if (file.size > 5 * 1024 * 1024) {
+      setUploadError('File size exceeds the 5MB limit.');
       setSelectedFile(null);
       return;
     }
@@ -115,34 +107,34 @@ export default function StudentDashboard() {
   };
 
   const handleUploadPdf = async () => {
-    if (!selectedFile) {
-      setUploadError('Please select a PDF file first.');
-      return;
-    }
+    if (!selectedFile) return;
 
     setUploading(true);
     setUploadError('');
+    setPdfUploadResult(null);
+
+    const formData = new FormData();
+    formData.append('resume', selectedFile);
 
     try {
-      const res = await api.uploadResumePdf(selectedFile);
-      if (res.success) {
-        const resumeData = res.data?.resume || res;
-        setPdfUploadResult({
-          filename: resumeData.filename || selectedFile.name,
-          version: resumeData.version || 1,
-          parsing_status: resumeData.extractionStatus || 'completed',
-          extracted_skills: resumeData.extractedSkills || [],
-          page_count: resumeData.pageCount || 1,
-          character_count: resumeData.characterCount || 0,
-        });
-        if (resumeData.extractedSkills && resumeData.extractedSkills.length > 0) {
-          setExtractedSkills(resumeData.extractedSkills);
+      const res = await api.uploadResumePdf(formData);
+      if (res.success && res.data) {
+        setPdfUploadResult(res.data);
+        if (res.data.extracted_skills && res.data.extracted_skills.length > 0) {
+          setExtractedSkills(res.data.extracted_skills);
+        }
+        if (res.data.skill_details) {
+          setSkillDetails(res.data.skill_details);
+        }
+        if (res.data.pipeline_metadata) {
+          setPipelineInfo(res.data.pipeline_metadata);
         }
       } else {
-        setUploadError(res.message || res.detail || 'Failed to upload and parse resume PDF.');
+        setUploadError(res.message || 'Failed to parse resume PDF.');
       }
     } catch (err) {
-      setUploadError('Unable to upload resume. Please check your network and session.');
+      const msg = err.response?.data?.message || err.message || 'Error uploading and processing PDF.';
+      setUploadError(msg);
     } finally {
       setUploading(false);
     }
@@ -212,88 +204,89 @@ export default function StudentDashboard() {
     <StudentLayout>
       <div className="space-y-8">
         {/* Welcome Header */}
-        <div className="bg-gradient-to-r from-brand-900 to-brand-800 rounded-2xl p-6 sm:p-8 text-white shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+        <div className="bg-gradient-to-r from-[#17233A] via-[#111A2E] to-[#1E2D4A] rounded-2xl p-6 sm:p-8 text-white shadow-xl border border-slate-800 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
           <div>
-            <div className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full bg-white/10 text-brand-200 text-xs font-semibold mb-2">
+            <div className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-xs font-semibold mb-2.5">
               <Sparkles className="w-3.5 h-3.5" />
-              <span>Student Intelligence Portal</span>
+              <span>NexPathra Career Intelligence Hub</span>
             </div>
-            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
+            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white">
               Welcome, {user ? user.name : 'Student'}
             </h1>
-            <p className="text-brand-200 text-sm mt-1">
+            <p className="text-slate-400 text-sm mt-1">
               {user ? user.email : 'student@university.edu'} • Role: {user ? user.role : 'STUDENT'}
             </p>
-            <div className="flex flex-wrap gap-2 mt-4">
+            <div className="flex flex-wrap gap-2.5 mt-4">
               <Link
                 to="/student/profile"
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/20 hover:bg-white/30 text-white text-xs font-semibold backdrop-blur transition-colors"
+                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-[#111A2E] hover:bg-[#1E2D4A] text-slate-200 text-xs font-semibold border border-slate-700/80 transition-colors"
               >
-                <User className="w-3.5 h-3.5" />
+                <User className="w-3.5 h-3.5 text-blue-400" />
                 <span>My Profile</span>
               </Link>
               <Link
                 to="/student/jobs"
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white text-[#1e3a5f] hover:bg-slate-100 text-xs font-semibold shadow-sm transition-colors"
+                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white text-xs font-semibold shadow-md shadow-blue-900/30 transition-all"
               >
                 <Briefcase className="w-3.5 h-3.5" />
                 <span>Browse Opportunities</span>
               </Link>
               <Link
                 to="/student/applications"
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/20 hover:bg-white/30 text-white text-xs font-semibold backdrop-blur transition-colors"
+                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-[#111A2E] hover:bg-[#1E2D4A] text-slate-200 text-xs font-semibold border border-slate-700/80 transition-colors"
               >
-                <FileText className="w-3.5 h-3.5" />
+                <FileText className="w-3.5 h-3.5 text-indigo-400" />
                 <span>My Applications</span>
               </Link>
             </div>
           </div>
-          <div className="bg-white/10 backdrop-blur rounded-xl p-4 text-center min-w-[130px]">
-            <p className="text-xs uppercase font-bold text-brand-200">Career Readiness</p>
+
+          <div className="bg-[#0B1020]/80 border border-slate-800 rounded-xl p-4 text-center min-w-[140px] shadow-inner">
+            <p className="text-[11px] uppercase tracking-wider font-bold text-slate-400">Career Readiness</p>
             {loadingMetrics ? (
               <div className="flex items-center justify-center py-2">
-                <Loader2 className="w-5 h-5 text-white animate-spin" />
+                <Loader2 className="w-5 h-5 text-blue-400 animate-spin" />
               </div>
             ) : (
-              <p className="text-3xl font-black text-white mt-1">
+              <p className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-indigo-300 to-violet-400 mt-1">
                 {readinessScore !== null ? `${readinessScore}%` : '0%'}
               </p>
             )}
-            <p className="text-[10px] text-brand-300 mt-0.5">Role: {targetRole}</p>
+            <p className="text-[10px] text-slate-400 mt-0.5">Role: {targetRole}</p>
           </div>
         </div>
 
         {/* Section 1: Real PDF Resume Parser (PyMuPDF) */}
-        <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
+        <div className="bg-[#17233A] rounded-2xl p-6 border border-slate-800 shadow-xl">
           <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center space-x-2">
-              <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center">
-                <FileCheck className="w-4 h-4" />
+            <div className="flex items-center space-x-3">
+              <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center">
+                <FileCheck className="w-5 h-5" />
               </div>
               <div>
-                <h2 className="text-base font-bold text-slate-900">Upload Resume (PDF Engine)</h2>
-                <p className="text-xs text-slate-500">
+                <h2 className="text-base font-bold text-white">Upload Resume (PDF Engine)</h2>
+                <p className="text-xs text-slate-400">
                   Powered by PyMuPDF text stream extraction & taxonomy alias normalizer
                 </p>
               </div>
             </div>
-            <span className="text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 px-2.5 py-1 rounded-full">
+            <span className="text-[10px] font-semibold bg-emerald-500/10 text-emerald-300 border border-emerald-500/30 px-2.5 py-1 rounded-full">
               PyMuPDF v2.1 Active
             </span>
           </div>
 
           {uploadError && (
-            <div className="mb-4 p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-center space-x-2">
-              <AlertCircle className="w-4 h-4 flex-shrink-0" />
+            <div className="mb-4 p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs flex items-center space-x-2">
+              <AlertCircle className="w-4 h-4 shrink-0" />
               <span>{uploadError}</span>
             </div>
           )}
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
             <div className="md:col-span-2">
-              <label className="flex flex-col items-center justify-center border-2 border-dashed border-slate-300 hover:border-brand-500 rounded-xl p-5 cursor-pointer bg-slate-50 hover:bg-white transition-colors">
+              <label className="flex flex-col items-center justify-center border-2 border-dashed border-slate-700 hover:border-blue-500/60 rounded-xl p-5 cursor-pointer bg-[#111A2E] hover:bg-[#17233A] transition-all">
                 <Upload className="w-6 h-6 text-slate-400 mb-2" />
-                <span className="text-xs font-semibold text-slate-700">
+                <span className="text-xs font-semibold text-slate-200">
                   {selectedFile ? selectedFile.name : 'Click to select or drag PDF resume here'}
                 </span>
                 <span className="text-[10px] text-slate-400 mt-1">
@@ -312,13 +305,13 @@ export default function StudentDashboard() {
               <button
                 onClick={handleUploadPdf}
                 disabled={!selectedFile || uploading}
-                className="w-full py-2.5 px-4 bg-brand-900 hover:bg-brand-800 text-white rounded-xl text-xs font-semibold inline-flex items-center justify-center space-x-2 transition-colors disabled:opacity-50"
+                className="w-full py-2.5 px-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white rounded-xl text-xs font-semibold inline-flex items-center justify-center space-x-2 transition-all disabled:opacity-50 shadow-md shadow-blue-900/30"
               >
                 <Upload className="w-4 h-4" />
                 <span>{uploading ? 'Parsing PDF via PyMuPDF...' : 'Parse & Extract Skills'}</span>
               </button>
               {selectedFile && (
-                <p className="text-[11px] text-slate-500 text-center">
+                <p className="text-[11px] text-slate-400 text-center">
                   {(selectedFile.size / 1024).toFixed(1)} KB selected
                 </p>
               )}
@@ -327,17 +320,17 @@ export default function StudentDashboard() {
 
           {/* PDF Results Summary */}
           {pdfUploadResult && (
-            <div className="mt-6 pt-6 border-t border-slate-100">
-              <div className="bg-slate-50 rounded-xl p-4 border border-slate-200/80 mb-4">
-                <div className="flex flex-wrap items-center justify-between text-xs text-slate-700 mb-2">
-                  <span className="font-semibold text-slate-900">
-                    File: <code className="bg-white px-2 py-0.5 rounded border border-slate-200">{pdfUploadResult.filename}</code>
+            <div className="mt-6 pt-6 border-t border-slate-800">
+              <div className="bg-[#111A2E] rounded-xl p-4 border border-slate-800 mb-4">
+                <div className="flex flex-wrap items-center justify-between text-xs text-slate-300 mb-2">
+                  <span className="font-semibold text-white">
+                    File: <code className="bg-[#17233A] px-2 py-0.5 rounded border border-slate-700 text-cyan-300">{pdfUploadResult.filename}</code>
                   </span>
-                  <span>Pages: <strong>{pdfUploadResult.page_count}</strong></span>
-                  <span>Characters: <strong>{pdfUploadResult.character_count}</strong></span>
-                  <span>Status: <strong className="text-emerald-700 uppercase">{pdfUploadResult.parsing_status}</strong></span>
+                  <span>Pages: <strong className="text-white">{pdfUploadResult.page_count}</strong></span>
+                  <span>Characters: <strong className="text-white">{pdfUploadResult.character_count}</strong></span>
+                  <span>Status: <strong className="text-emerald-400 uppercase">{pdfUploadResult.parsing_status}</strong></span>
                 </div>
-                <p className="text-[11px] text-slate-500 italic">
+                <p className="text-[11px] text-slate-400 italic">
                   Preview: "{pdfUploadResult.extracted_text_preview}"
                 </p>
               </div>
@@ -349,19 +342,19 @@ export default function StudentDashboard() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           
           {/* Card: Extracted Skills & Evidence Inspector */}
-          <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm flex flex-col justify-between">
+          <div className="bg-[#17233A] rounded-2xl p-6 border border-slate-800 shadow-xl flex flex-col justify-between">
             <div>
               <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center space-x-2">
-                  <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-700 flex items-center justify-center">
-                    <FileText className="w-4 h-4" />
+                <div className="flex items-center space-x-3">
+                  <div className="w-10 h-10 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-400 flex items-center justify-center">
+                    <FileText className="w-5 h-5" />
                   </div>
                   <div>
-                    <h2 className="text-base font-bold text-slate-900">Normalized Extracted Skills</h2>
-                    <p className="text-xs text-slate-500">Canonical taxonomy resolution & confidence</p>
+                    <h2 className="text-base font-bold text-white">Normalized Extracted Skills</h2>
+                    <p className="text-xs text-slate-400">Canonical taxonomy resolution & confidence</p>
                   </div>
                 </div>
-                <span className="text-[10px] font-semibold bg-brand-50 text-brand-800 px-2.5 py-1 rounded-full">
+                <span className="text-[10px] font-semibold bg-blue-500/10 text-blue-300 border border-blue-500/20 px-2.5 py-1 rounded-full">
                   {extractedSkills.length} Detected
                 </span>
               </div>
@@ -371,27 +364,27 @@ export default function StudentDashboard() {
                 {extractedSkills.map((skill, idx) => (
                   <span
                     key={idx}
-                    className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold bg-brand-50 text-brand-900 border border-brand-200/60"
+                    className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold bg-[#111A2E] text-slate-200 border border-slate-700/80"
                   >
-                    <CheckCircle className="w-3 h-3 text-brand-600 mr-1" />
+                    <CheckCircle className="w-3 h-3 text-emerald-400 mr-1" />
                     {skill}
                   </span>
                 ))}
               </div>
 
               {/* Day 5: One-Click Resume Skill Import CTA */}
-              <div className="my-4 p-4 rounded-xl bg-indigo-50/70 border border-indigo-200">
+              <div className="my-4 p-4 rounded-xl bg-[#111A2E] border border-slate-800">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div>
-                    <h3 className="text-xs font-bold text-indigo-900">Sync with Student Profile</h3>
-                    <p className="text-[11px] text-indigo-700 mt-0.5">
+                    <h3 className="text-xs font-bold text-white">Sync with Student Profile</h3>
+                    <p className="text-[11px] text-slate-400 mt-0.5">
                       Add these {extractedSkills.length} parsed skills directly into your verified profile without manual entry.
                     </p>
                   </div>
                   <button
                     onClick={handleSyncSkillsToProfile}
                     disabled={syncingSkills || extractedSkills.length === 0}
-                    className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-lg text-xs font-semibold inline-flex items-center justify-center space-x-1.5 transition-colors shadow-sm whitespace-nowrap"
+                    className="px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 disabled:opacity-50 text-white rounded-lg text-xs font-semibold inline-flex items-center justify-center space-x-1.5 transition-all shadow-md whitespace-nowrap"
                   >
                     <CheckCircle className="w-3.5 h-3.5" />
                     <span>{syncingSkills ? 'Importing...' : 'Import Skills to My Profile'}</span>
@@ -402,14 +395,14 @@ export default function StudentDashboard() {
                   <div
                     className={`mt-3 p-2.5 rounded-lg text-xs font-medium flex items-center space-x-2 ${
                       syncFeedback.type === 'success'
-                        ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
-                        : 'bg-rose-50 text-rose-800 border border-rose-200'
+                        ? 'bg-emerald-500/10 text-emerald-300 border border-emerald-500/30'
+                        : 'bg-rose-500/10 text-rose-300 border border-rose-500/30'
                     }`}
                   >
                     {syncFeedback.type === 'success' ? (
-                      <CheckCircle className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+                      <CheckCircle className="w-4 h-4 text-emerald-400 shrink-0" />
                     ) : (
-                      <AlertCircle className="w-4 h-4 text-rose-600 flex-shrink-0" />
+                      <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
                     )}
                     <span>{syncFeedback.message}</span>
                   </div>
@@ -418,18 +411,18 @@ export default function StudentDashboard() {
 
               {/* Detailed Skill Evidence Table if available */}
               {skillDetails.length > 0 && (
-                <div className="mt-4 pt-4 border-t border-slate-100 max-h-60 overflow-y-auto">
-                  <p className="text-xs font-bold text-slate-700 mb-2">Confidence & Extracted Evidence:</p>
+                <div className="mt-4 pt-4 border-t border-slate-800 max-h-60 overflow-y-auto">
+                  <p className="text-xs font-bold text-slate-300 mb-2">Confidence & Extracted Evidence:</p>
                   <div className="space-y-2">
                     {skillDetails.slice(0, 6).map((item, idx) => (
-                      <div key={idx} className="p-2 rounded-lg bg-slate-50 border border-slate-200 text-xs">
+                      <div key={idx} className="p-2.5 rounded-lg bg-[#111A2E] border border-slate-800 text-xs">
                         <div className="flex items-center justify-between mb-1">
-                          <span className="font-bold text-slate-800">{item.name}</span>
-                          <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded">
+                          <span className="font-bold text-slate-200">{item.name}</span>
+                          <span className="text-[10px] font-semibold text-emerald-300 bg-emerald-500/10 border border-emerald-500/20 px-1.5 py-0.5 rounded">
                             {Math.round(item.confidence * 100)}% Confidence
                           </span>
                         </div>
-                        <p className="text-[10px] text-slate-500 font-mono italic">{item.evidence}</p>
+                        <p className="text-[10px] text-slate-400 font-mono italic">{item.evidence}</p>
                       </div>
                     ))}
                   </div>
@@ -437,7 +430,7 @@ export default function StudentDashboard() {
               )}
             </div>
 
-            <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-[10px] text-slate-400">
+            <div className="mt-4 pt-3 border-t border-slate-800 flex items-center justify-between text-[10px] text-slate-400">
               <span className="flex items-center space-x-1">
                 <Info className="w-3 h-3 text-slate-400" />
                 <span>Deterministic rule-based taxonomy normalizer</span>
@@ -446,22 +439,22 @@ export default function StudentDashboard() {
           </div>
 
           {/* Card: Skill Gap Analysis */}
-          <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm flex flex-col justify-between">
+          <div className="bg-[#17233A] rounded-2xl p-6 border border-slate-800 shadow-xl flex flex-col justify-between">
             <div>
               <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center space-x-2">
-                  <div className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-700 flex items-center justify-center">
-                    <Target className="w-4 h-4" />
+                <div className="flex items-center space-x-3">
+                  <div className="w-10 h-10 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 flex items-center justify-center">
+                    <Target className="w-5 h-5" />
                   </div>
                   <div>
-                    <h2 className="text-base font-bold text-slate-900">Career Gap Benchmark</h2>
-                    <p className="text-xs text-slate-500">Industry benchmark comparison</p>
+                    <h2 className="text-base font-bold text-white">Career Gap Benchmark</h2>
+                    <p className="text-xs text-slate-400">Industry benchmark comparison</p>
                   </div>
                 </div>
                 <select
                   value={targetRole}
                   onChange={(e) => handleRunGapAnalysis(e.target.value)}
-                  className="text-xs border border-slate-200 rounded-lg px-2.5 py-1 font-semibold text-slate-700 bg-white"
+                  className="text-xs border border-slate-700 rounded-lg px-2.5 py-1 font-semibold text-slate-200 bg-[#111A2E] focus:outline-hidden focus:ring-1 focus:ring-blue-500"
                 >
                   <option value="Full Stack Developer">Full Stack Developer</option>
                   <option value="Frontend Developer">Frontend Developer</option>
@@ -473,12 +466,12 @@ export default function StudentDashboard() {
               {/* Progress Bar */}
               <div className="mb-4">
                 <div className="flex items-center justify-between text-xs font-semibold mb-1">
-                  <span className="text-slate-700">Competency Match</span>
-                  <span className="text-brand-900">{gapData ? `${gapData.readiness_score}%` : '0%'}</span>
+                  <span className="text-slate-300">Competency Match</span>
+                  <span className="text-blue-400 font-bold">{gapData ? `${gapData.readiness_score}%` : '0%'}</span>
                 </div>
-                <div className="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden">
+                <div className="w-full h-2.5 bg-[#111A2E] rounded-full overflow-hidden border border-slate-800">
                   <div
-                    className="h-full bg-gradient-to-r from-brand-600 to-indigo-600 transition-all duration-500"
+                    className="h-full bg-gradient-to-r from-blue-500 via-indigo-500 to-violet-500 transition-all duration-500"
                     style={{ width: `${gapData ? gapData.readiness_score : 0}%` }}
                   ></div>
                 </div>
@@ -487,7 +480,7 @@ export default function StudentDashboard() {
               {/* Missing Skills */}
               <div className="space-y-3">
                 <div>
-                  <span className="text-xs font-semibold text-rose-600 flex items-center mb-1.5">
+                  <span className="text-xs font-semibold text-rose-400 flex items-center mb-1.5">
                     <AlertTriangle className="w-3.5 h-3.5 mr-1" />
                     Missing Critical Skills ({gapData ? gapData.missing_critical_skills.length : 0}):
                   </span>
@@ -496,20 +489,20 @@ export default function StudentDashboard() {
                       gapData.missing_critical_skills.map((skill, idx) => (
                         <span
                           key={idx}
-                          className="px-2.5 py-1 rounded-lg text-xs font-medium bg-rose-50 text-rose-700 border border-rose-200"
+                          className="px-2.5 py-1 rounded-lg text-xs font-medium bg-rose-500/10 text-rose-300 border border-rose-500/30"
                         >
                           {skill}
                         </span>
                       ))
                     ) : (
-                      <span className="text-xs text-emerald-600 font-medium">None! All target skills satisfied.</span>
+                      <span className="text-xs text-emerald-400 font-medium">None! All target skills satisfied.</span>
                     )}
                   </div>
                 </div>
 
                 {/* Recommended Roadmaps */}
                 <div className="pt-2">
-                  <span className="text-xs font-semibold text-slate-700 block mb-1.5">
+                  <span className="text-xs font-semibold text-slate-300 block mb-1.5">
                     Recommended Learning Roadmap:
                   </span>
                   <div className="space-y-2">
@@ -517,26 +510,26 @@ export default function StudentDashboard() {
                       gapData.recommended_courses.map((course, idx) => (
                         <div
                           key={idx}
-                          className="p-2.5 rounded-xl bg-slate-50 border border-slate-200/80 flex items-center justify-between"
+                          className="p-2.5 rounded-xl bg-[#111A2E] border border-slate-800 flex items-center justify-between"
                         >
                           <div className="flex items-center space-x-2">
-                            <BookOpen className="w-3.5 h-3.5 text-brand-600" />
-                            <span className="text-xs font-medium text-slate-800">{course.title}</span>
+                            <BookOpen className="w-3.5 h-3.5 text-blue-400" />
+                            <span className="text-xs font-medium text-slate-200">{course.title}</span>
                           </div>
-                          <span className="text-[11px] font-semibold text-slate-500">~{course.estimated_hours}h</span>
+                          <span className="text-[11px] font-semibold text-slate-400">~{course.estimated_hours}h</span>
                         </div>
                       ))
                     ) : (
-                      <span className="text-xs text-slate-400 italic">No courses recommended.</span>
+                      <span className="text-xs text-slate-500 italic">No courses recommended.</span>
                     )}
                   </div>
                 </div>
               </div>
             </div>
 
-            <div className="mt-4 pt-3 border-t border-slate-100 text-[10px] text-slate-400 flex items-center justify-between">
+            <div className="mt-4 pt-3 border-t border-slate-800 text-[10px] text-slate-400 flex items-center justify-between">
               <span>Authoritative Readiness & Gap Engine</span>
-              <Link to="/student/career/readiness" className="text-brand-900 font-semibold hover:underline">
+              <Link to="/student/career/readiness" className="text-blue-400 font-semibold hover:underline">
                 View Full Breakdown →
               </Link>
             </div>

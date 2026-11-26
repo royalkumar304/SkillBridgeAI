@@ -1,98 +1,108 @@
 import React, { useState } from 'react';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
-import MainLayout from '../../layouts/MainLayout';
-import { Sparkles, Lock, Mail, ShieldAlert } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { sanitizeRedirectPath } from '../../utils/safeRedirect';
+import NexPathraLogo from '../../components/NexPathraLogo';
+import { Lock, Mail, AlertCircle, ArrowRight } from 'lucide-react';
 
 export default function Login() {
-  const navigate = useNavigate();
-  const location = useLocation();
-  const { login, getRoleDashboard } = useAuth();
-
-  const [formData, setFormData] = useState({
-    email: '',
-    password: '',
-  });
+  const [formData, setFormData] = useState({ email: '', password: '' });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const { login, getRoleDashboard } = useAuth();
+  const navigate = useNavigate();
 
-  const from = location.state?.from?.pathname;
+  const handleChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+    if (error) setError('');
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError('');
     setLoading(true);
+    setError('');
 
     try {
-      const result = await login(formData.email, formData.password);
-      if (result.success && result.user) {
-        const defaultDest = getRoleDashboard(result.user.role);
-        const safeTarget = from ? sanitizeRedirectPath(from, defaultDest) : defaultDest;
-        navigate(safeTarget, { replace: true });
+      const res = await login(formData.email, formData.password);
+      if (res && res.user) {
+        navigate(getRoleDashboard(res.user.role));
       } else {
-        setError(result.message || 'Invalid email or password');
+        navigate('/');
       }
     } catch (err) {
-      setError('Backend service connection failure. Please ensure the Express server is running on port 5001.');
+      setError(err.response?.data?.message || 'Invalid email or password. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleDemoFill = (role, email) => {
-    setFormData({
-      email,
-      password: 'Password123!',
-    });
-  };
-
   return (
-    <MainLayout>
-      <div className="py-16 px-4 sm:px-6 lg:px-8 max-w-md mx-auto">
-        <div className="bg-white p-8 rounded-2xl border border-slate-200 shadow-sm">
-          <div className="text-center mb-6">
-            <div className="w-12 h-12 bg-brand-50 text-brand-900 rounded-xl flex items-center justify-center mx-auto mb-3">
-              <Sparkles className="w-6 h-6 text-brand-600" />
-            </div>
-            <h2 className="text-2xl font-bold text-brand-900">Sign in to SkillBridge</h2>
-            <p className="text-xs text-slate-500 mt-1">SIH 2026 Academia–Industry Portal</p>
-          </div>
+    <div className="min-h-screen bg-[#0B1020] flex flex-col justify-center py-12 sm:px-6 lg:px-8 relative overflow-hidden">
+      {/* Background Ambient Glow */}
+      <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[300px] bg-gradient-to-tr from-blue-600/10 via-indigo-600/10 to-violet-600/10 blur-[100px] rounded-full pointer-events-none"></div>
 
+      <div className="sm:mx-auto sm:w-full sm:max-w-md relative z-10 text-center">
+        <Link to="/" className="inline-block mb-6">
+          <NexPathraLogo size="lg" showTagline={true} />
+        </Link>
+        <h2 className="text-2xl font-black text-white tracking-tight">Sign in to your account</h2>
+        <p className="mt-2 text-sm text-slate-400">
+          Or{' '}
+          <Link to="/register" className="font-semibold text-blue-400 hover:text-blue-300">
+            create a new account
+          </Link>
+        </p>
+      </div>
+
+      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md relative z-10">
+        <div className="bg-[#17233A] py-8 px-6 shadow-2xl border border-slate-800 rounded-2xl sm:px-10">
           {error && (
-            <div className="mb-4 p-3 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-start space-x-2">
-              <ShieldAlert className="w-4 h-4 flex-shrink-0 mt-0.5" />
+            <div className="mb-6 p-4 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 flex items-start space-x-3 text-sm">
+              <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
               <span>{error}</span>
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form className="space-y-5" onSubmit={handleSubmit}>
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">Email Address</label>
+              <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">
+                Email Address
+              </label>
               <div className="relative">
-                <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                  <Mail className="w-4 h-4" />
+                </div>
                 <input
+                  id="email"
+                  name="email"
                   type="email"
+                  autoComplete="email"
                   required
                   value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  placeholder="name@university.edu"
-                  className="w-full pl-9 pr-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500"
+                  onChange={handleChange}
+                  placeholder="name@organization.com"
+                  className="w-full pl-10 pr-4 py-2.5 bg-[#111A2E] border border-slate-700/80 rounded-xl text-white placeholder-slate-500 focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm transition-all"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">Password</label>
+              <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">
+                Password
+              </label>
               <div className="relative">
-                <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                  <Lock className="w-4 h-4" />
+                </div>
                 <input
+                  id="password"
+                  name="password"
                   type="password"
+                  autoComplete="current-password"
                   required
                   value={formData.password}
-                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                  onChange={handleChange}
                   placeholder="••••••••"
-                  className="w-full pl-9 pr-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500"
+                  className="w-full pl-10 pr-4 py-2.5 bg-[#111A2E] border border-slate-700/80 rounded-xl text-white placeholder-slate-500 focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm transition-all"
                 />
               </div>
             </div>
@@ -100,50 +110,20 @@ export default function Login() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-2.5 px-4 bg-brand-900 hover:bg-brand-800 text-white rounded-lg text-sm font-semibold transition-colors disabled:opacity-50"
+              className="w-full flex items-center justify-center space-x-2 py-3 px-4 rounded-xl text-sm font-semibold text-white bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600 hover:from-blue-500 hover:to-violet-500 shadow-lg shadow-blue-900/30 transition-all hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed mt-2"
             >
-              {loading ? 'Authenticating...' : 'Sign In'}
+              {loading ? (
+                <span>Authenticating...</span>
+              ) : (
+                <>
+                  <span>Sign In</span>
+                  <ArrowRight className="w-4 h-4" />
+                </>
+              )}
             </button>
           </form>
-
-          {/* Quick Demo Fill Buttons */}
-          <div className="mt-6 pt-6 border-t border-slate-100">
-            <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-2 text-center">
-              Quick Test Autofill
-            </p>
-            <div className="grid grid-cols-3 gap-2">
-              <button
-                type="button"
-                onClick={() => handleDemoFill('STUDENT', 'student@demo.com')}
-                className="text-[11px] py-1.5 px-2 bg-slate-100 hover:bg-slate-200 rounded font-medium text-slate-700"
-              >
-                Student
-              </button>
-              <button
-                type="button"
-                onClick={() => handleDemoFill('RECRUITER', 'recruiter@demo.com')}
-                className="text-[11px] py-1.5 px-2 bg-slate-100 hover:bg-slate-200 rounded font-medium text-slate-700"
-              >
-                Recruiter
-              </button>
-              <button
-                type="button"
-                onClick={() => handleDemoFill('ADMIN', 'admin@demo.com')}
-                className="text-[11px] py-1.5 px-2 bg-slate-100 hover:bg-slate-200 rounded font-medium text-slate-700"
-              >
-                Admin
-              </button>
-            </div>
-          </div>
-
-          <div className="mt-6 text-center text-xs text-slate-500">
-            Don't have an account?{' '}
-            <Link to="/register" className="font-semibold text-brand-700 hover:text-brand-900">
-              Register here
-            </Link>
-          </div>
         </div>
       </div>
-    </MainLayout>
+    </div>
   );
 }

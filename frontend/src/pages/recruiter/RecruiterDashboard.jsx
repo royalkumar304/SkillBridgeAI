@@ -43,28 +43,28 @@ export default function RecruiterDashboard() {
     <RecruiterLayout>
       <div className="space-y-8">
         {/* Recruiter Header */}
-        <div className="bg-white rounded-2xl p-6 sm:p-8 border border-slate-200 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div className="bg-[#17233A] rounded-2xl p-6 sm:p-8 border border-slate-800 shadow-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>
-            <div className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full bg-indigo-50 text-indigo-700 text-xs font-semibold mb-2">
+            <div className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full bg-blue-500/10 text-blue-400 text-xs font-semibold mb-2.5 border border-blue-500/20">
               <Building2 className="w-3.5 h-3.5" />
-              <span>SkillBridge Industry Recruiter Console</span>
+              <span>NexPathra Corporate Recruiter Desk</span>
             </div>
-            <h1 className="text-2xl font-bold text-slate-900">Applicant Pipeline & Job Management</h1>
-            <p className="text-xs text-slate-500 mt-1">
-              Active Listings: 3 • Total Applicants: 48 • Auto-Ranked via SkillBridge Match Engine
+            <h1 className="text-2xl font-black text-white">Applicant Pipeline & Job Management</h1>
+            <p className="text-xs text-slate-400 mt-1">
+              Active Listings: 3 • Total Applicants: 48 • Auto-Ranked via NexPathra Match Engine
             </p>
           </div>
 
-          <div className="flex gap-2">
+          <div className="flex gap-2.5">
             <Link
               to="/recruiter/jobs"
-              className="px-4 py-2.5 border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-xl text-xs font-semibold inline-flex items-center space-x-1.5 transition-colors shadow-sm"
+              className="px-4 py-2.5 border border-slate-700 bg-[#111A2E] hover:bg-[#1E2D4A] text-slate-200 rounded-xl text-xs font-semibold inline-flex items-center space-x-1.5 transition-colors"
             >
               <span>Manage Openings</span>
             </Link>
             <Link
               to="/recruiter/jobs/create"
-              className="px-4 py-2.5 bg-[#1e3a5f] hover:bg-[#16304f] text-white rounded-xl text-xs font-semibold inline-flex items-center space-x-1.5 transition-colors shadow-sm"
+              className="px-4 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white rounded-xl text-xs font-semibold inline-flex items-center space-x-1.5 transition-all shadow-md shadow-blue-900/30"
             >
               <Plus className="w-4 h-4" />
               <span>Post New Opportunity</span>
@@ -74,29 +74,29 @@ export default function RecruiterDashboard() {
 
         {/* Quick Metric Stats */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-          <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
-            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Active Openings</p>
-            <p className="text-3xl font-extrabold text-slate-900 mt-2">3</p>
-            <p className="text-xs text-emerald-600 mt-1 font-medium">All applications open</p>
+          <div className="bg-[#17233A] p-6 rounded-2xl border border-slate-800 shadow-xl">
+            <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Active Openings</p>
+            <p className="text-3xl font-black text-white mt-2">3</p>
+            <p className="text-xs text-emerald-400 mt-1 font-medium">All applications open</p>
           </div>
-          <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
-            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Candidates Above 80% Match</p>
-            <p className="text-3xl font-extrabold text-indigo-700 mt-2">24</p>
-            <p className="text-xs text-slate-500 mt-1">Pre-filtered by AI</p>
+          <div className="bg-[#17233A] p-6 rounded-2xl border border-slate-800 shadow-xl">
+            <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Candidates Above 80% Match</p>
+            <p className="text-3xl font-black text-blue-400 mt-2">24</p>
+            <p className="text-xs text-slate-400 mt-1">Pre-filtered by AI</p>
           </div>
-          <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
-            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Scheduled Interviews</p>
-            <p className="text-3xl font-extrabold text-slate-900 mt-2">8</p>
-            <p className="text-xs text-indigo-600 mt-1 font-medium">Next: Tomorrow 11:00 AM</p>
+          <div className="bg-[#17233A] p-6 rounded-2xl border border-slate-800 shadow-xl">
+            <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Scheduled Interviews</p>
+            <p className="text-3xl font-black text-indigo-400 mt-2">8</p>
+            <p className="text-xs text-indigo-300 mt-1 font-medium">Next: Tomorrow 11:00 AM</p>
           </div>
         </div>
 
         {/* Applicants Table */}
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-          <div className="p-6 border-b border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="bg-[#17233A] rounded-2xl border border-slate-800 shadow-xl overflow-hidden">
+          <div className="p-6 border-b border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
-              <h2 className="text-base font-bold text-slate-900">Applicant Submissions</h2>
-              <p className="text-xs text-slate-500">Sorted by Explainable Match Score</p>
+              <h2 className="text-base font-bold text-white">Applicant Submissions</h2>
+              <p className="text-xs text-slate-400">Sorted by Explainable Match Score</p>
             </div>
             <div className="flex items-center space-x-2">
               <div className="relative">
@@ -104,7 +104,7 @@ export default function RecruiterDashboard() {
                 <input
                   type="text"
                   placeholder="Filter by skill or name..."
-                  className="pl-8 pr-3 py-1.5 text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-500"
+                  className="pl-8 pr-3 py-1.5 text-xs bg-[#111A2E] border border-slate-700/80 rounded-lg text-slate-200 placeholder-slate-500 focus:outline-hidden focus:ring-1 focus:ring-blue-500"
                 />
               </div>
             </div>
@@ -112,7 +112,7 @@ export default function RecruiterDashboard() {
 
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
-              <thead className="bg-slate-50 text-slate-500 font-semibold uppercase tracking-wider border-b border-slate-200">
+              <thead className="bg-[#111A2E] text-slate-400 font-semibold uppercase tracking-wider border-b border-slate-800">
                 <tr>
                   <th className="py-3 px-6">Candidate</th>
                   <th className="py-3 px-6">Opportunity</th>
@@ -122,36 +122,36 @@ export default function RecruiterDashboard() {
                   <th className="py-3 px-6 text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-slate-800">
                 {applicants.map((app) => (
-                  <tr key={app.id} className="hover:bg-slate-50/70 transition-colors">
+                  <tr key={app.id} className="hover:bg-[#1E2D4A]/50 transition-colors">
                     <td className="py-4 px-6">
-                      <p className="font-bold text-slate-900">{app.name}</p>
-                      <p className="text-[11px] text-slate-500">{app.university}</p>
+                      <p className="font-bold text-white">{app.name}</p>
+                      <p className="text-[11px] text-slate-400">{app.university}</p>
                       <div className="flex flex-wrap gap-1 mt-1">
                         {app.skills.map((s, i) => (
-                          <span key={i} className="text-[9px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded">
+                          <span key={i} className="text-[9px] bg-[#111A2E] text-slate-300 border border-slate-700 px-1.5 py-0.5 rounded">
                             {s}
                           </span>
                         ))}
                       </div>
                     </td>
-                    <td className="py-4 px-6 text-slate-700 font-medium">{app.role}</td>
-                    <td className="py-4 px-6 font-semibold text-slate-800">{app.cgpa}</td>
+                    <td className="py-4 px-6 text-slate-300 font-medium">{app.role}</td>
+                    <td className="py-4 px-6 font-semibold text-slate-200">{app.cgpa}</td>
                     <td className="py-4 px-6">
                       <span className={`inline-flex items-center px-2 py-0.5 rounded-full font-bold ${
                         app.matchScore >= 80
-                          ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                          : 'bg-amber-50 text-amber-700 border border-amber-200'
+                          ? 'bg-emerald-500/10 text-emerald-300 border border-emerald-500/20'
+                          : 'bg-amber-500/10 text-amber-300 border border-amber-500/20'
                       }`}>
                         {app.matchScore}%
                       </span>
                     </td>
                     <td className="py-4 px-6">
-                      <span className="text-[11px] font-semibold text-slate-700">{app.status}</span>
+                      <span className="text-[11px] font-semibold text-slate-300">{app.status}</span>
                     </td>
                     <td className="py-4 px-6 text-right space-x-2">
-                      <button className="px-3 py-1 bg-brand-900 hover:bg-brand-800 text-white rounded-lg text-xs font-semibold">
+                      <button className="px-3 py-1 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white rounded-lg text-xs font-semibold shadow-xs transition-all">
                         Shortlist
                       </button>
                     </td>
@@ -165,4 +165,3 @@ export default function RecruiterDashboard() {
     </RecruiterLayout>
   );
 }
-

@@ -69,28 +69,28 @@ export default function JobBoard() {
     <StudentLayout>
       <div className="space-y-6">
         <div>
-          <h1 className="text-2xl font-extrabold text-[#1e3a5f]">Opportunities & Placement Board</h1>
-          <p className="text-xs text-slate-500 mt-1">
+          <h1 className="text-2xl font-black text-white">Opportunities & Placement Board</h1>
+          <p className="text-xs text-slate-400 mt-1">
             Browse verified internship and full-time placement openings curated for academia-industry collaboration.
           </p>
         </div>
 
         {/* Filters */}
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 flex flex-col sm:flex-row gap-3">
+        <div className="bg-[#17233A] rounded-2xl border border-slate-800 shadow-xl p-4 flex flex-col sm:flex-row gap-3">
           <div className="relative flex-1">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+            <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
             <input
               type="text"
               placeholder="Search by role, company, skill or location…"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-9 pr-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1e3a5f]"
+              className="w-full pl-10 pr-3 py-2 text-sm bg-[#111A2E] border border-slate-700/80 rounded-xl text-white placeholder-slate-500 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
             />
           </div>
           <select
             value={jobType}
             onChange={(e) => setJobType(e.target.value)}
-            className="border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a5f] bg-white"
+            className="border border-slate-700/80 rounded-xl px-3 py-2 text-sm text-slate-200 bg-[#111A2E] focus:outline-hidden focus:ring-2 focus:ring-blue-500"
           >
             {JOB_TYPES.map((t) => (
               <option key={t} value={t}>
@@ -101,7 +101,7 @@ export default function JobBoard() {
           <select
             value={location}
             onChange={(e) => setLocation(e.target.value)}
-            className="border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a5f] bg-white"
+            className="border border-slate-700/80 rounded-xl px-3 py-2 text-sm text-slate-200 bg-[#111A2E] focus:outline-hidden focus:ring-2 focus:ring-blue-500"
           >
             <option value="">All Locations</option>
             {uniqueLocations.map((l) => (
@@ -114,7 +114,7 @@ export default function JobBoard() {
 
         {/* Error */}
         {error && (
-          <div className="flex items-center gap-2 p-4 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm">
+          <div className="flex items-center gap-2 p-4 bg-rose-500/10 border border-rose-500/20 rounded-xl text-rose-400 text-sm">
             <AlertCircle className="w-4 h-4" /> {error}
           </div>
         )}
@@ -123,9 +123,9 @@ export default function JobBoard() {
         {loading ? (
           <LoadingSpinner message="Fetching live job listings..." />
         ) : filtered.length === 0 ? (
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-12 text-center">
-            <Briefcase className="w-10 h-10 text-slate-300 mx-auto mb-3" />
-            <p className="text-slate-600 font-semibold">No job openings found.</p>
+          <div className="bg-[#17233A] rounded-2xl border border-slate-800 shadow-xl p-12 text-center">
+            <Briefcase className="w-10 h-10 text-slate-500 mx-auto mb-3" />
+            <p className="text-white font-semibold">No job openings found.</p>
             {search && <p className="text-xs text-slate-400 mt-1">Try clearing your filters or search keywords.</p>}
           </div>
         ) : (
@@ -146,43 +146,43 @@ function JobCard({ job }) {
   const companyTitle = job.companyId?.name || job.companyName || 'Corporate Partner';
 
   return (
-    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 flex flex-col justify-between gap-4 hover:shadow-md transition-shadow">
+    <div className="bg-[#17233A] rounded-2xl border border-slate-800 shadow-xl p-5 flex flex-col justify-between gap-4 hover:border-slate-700 transition-all">
       <div>
         <div className="flex items-start justify-between gap-2 mb-1">
           <div>
-            <h3 className="font-bold text-slate-900 text-base leading-tight">{job.title}</h3>
-            <p className="text-xs text-slate-500 font-medium flex items-center gap-1 mt-0.5">
-              <Building2 className="w-3 h-3 text-[#1e3a5f]" /> {companyTitle}
+            <h3 className="font-bold text-white text-base leading-tight">{job.title}</h3>
+            <p className="text-xs text-slate-400 font-medium flex items-center gap-1 mt-0.5">
+              <Building2 className="w-3.5 h-3.5 text-blue-400" /> {companyTitle}
             </p>
           </div>
           <span
             className={`shrink-0 text-[10px] font-semibold px-2 py-0.5 rounded-full border ${
               job.jobType === 'internship'
-                ? 'bg-sky-50 text-sky-700 border-sky-200'
+                ? 'bg-cyan-500/10 text-cyan-300 border-cyan-500/20'
                 : job.jobType === 'full_time'
-                ? 'bg-indigo-50 text-indigo-700 border-indigo-200'
-                : 'bg-amber-50 text-amber-700 border-amber-200'
+                ? 'bg-blue-500/10 text-blue-300 border-blue-500/20'
+                : 'bg-amber-500/10 text-amber-300 border-amber-500/20'
             }`}
           >
             {JOB_TYPE_LABELS[job.jobType] || job.jobType}
           </span>
         </div>
 
-        <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-500 mt-2 mb-3">
+        <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-400 mt-2 mb-3">
           {job.location && (
             <span className="flex items-center gap-1">
-              <MapPin className="w-3 h-3" />
+              <MapPin className="w-3.5 h-3.5 text-slate-400" />
               {job.location}
             </span>
           )}
           {job.stipend && (
             <span className="flex items-center gap-1">
-              <span className="font-medium text-slate-700">₹{job.stipend}/mo</span>
+              <span className="font-medium text-emerald-400">₹{job.stipend}/mo</span>
             </span>
           )}
           {deadline && (
-            <span className={`flex items-center gap-1 ${isPast ? 'text-red-500' : ''}`}>
-              <Calendar className="w-3 h-3" />
+            <span className={`flex items-center gap-1 ${isPast ? 'text-rose-400' : 'text-slate-400'}`}>
+              <Calendar className="w-3.5 h-3.5" />
               {isPast ? 'Closed' : `Deadline: ${deadline.toLocaleDateString()}`}
             </span>
           )}
@@ -200,11 +200,11 @@ function JobCard({ job }) {
         )}
       </div>
 
-      <div className="pt-2 border-t border-slate-100 flex items-center justify-between">
-        <span className="text-xs text-slate-400">Min CGPA: {job.minCGPA || 6.0}</span>
+      <div className="pt-3 border-t border-slate-800 flex items-center justify-between">
+        <span className="text-xs text-slate-400">Min CGPA: <strong className="text-slate-300">{job.minCGPA || 6.0}</strong></span>
         <Link
           to={`/student/jobs/${job._id}`}
-          className="inline-flex items-center gap-1 text-sm font-semibold text-[#1e3a5f] hover:underline"
+          className="inline-flex items-center gap-1 text-sm font-semibold text-blue-400 hover:text-blue-300 transition-colors"
         >
           View & Apply <ChevronRight className="w-4 h-4" />
         </Link>

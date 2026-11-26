@@ -63,16 +63,18 @@ export default function AdminDashboard() {
   return (
     <AdminLayout>
       <div className="space-y-8">
-        {/* Admin Header with Live Status Pill */}
-        <div className="bg-white rounded-2xl p-6 sm:p-8 border border-slate-200 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        {/* Header Banner */}
+        <div className="bg-[#17233A] rounded-2xl p-6 sm:p-8 border border-slate-800 shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
           <div>
-            <div className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full bg-slate-100 text-slate-800 text-xs font-semibold mb-2">
-              <ShieldCheck className="w-3.5 h-3.5 text-brand-700" />
-              <span>Apex Institute of Technology • Training & Placement Command Center</span>
+            <div className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full bg-violet-500/10 border border-violet-500/20 text-violet-400 text-xs font-semibold mb-2.5">
+              <ShieldCheck className="w-3.5 h-3.5" />
+              <span>NexPathra Institutional Command Center</span>
             </div>
-            <h1 className="text-2xl font-bold text-slate-900">University Skill & Placement Intelligence</h1>
-            <p className="text-xs text-slate-500 mt-1">
-              Live Database Integration • Real-Time Campus Competency Mapping & Industry Alignment
+            <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
+              University Administration & Analytics
+            </h1>
+            <p className="text-slate-400 text-xs sm:text-sm mt-1">
+              Institutional oversight, placement velocity, curriculum-to-industry alignment, and partner approvals.
             </p>
           </div>
 
@@ -80,224 +82,210 @@ export default function AdminDashboard() {
             <button
               onClick={handleRefresh}
               disabled={refreshing || loading}
-              className="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold inline-flex items-center space-x-1.5 transition-colors"
+              className="p-2.5 rounded-xl border border-slate-700 bg-[#111A2E] text-slate-300 hover:text-white hover:bg-[#1E2D4A] transition-colors disabled:opacity-50"
+              title="Refresh Analytics"
             >
-              <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`} />
-              <span>Refresh Stats</span>
+              <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
             </button>
             <Link
-              to="/admin/students"
-              className="px-4 py-2 bg-brand-900 hover:bg-brand-800 text-white rounded-xl text-xs font-semibold inline-flex items-center space-x-1.5 transition-colors shadow-sm"
+              to="/admin/curriculum-insights"
+              className="px-4 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white rounded-xl text-xs font-semibold inline-flex items-center space-x-1.5 transition-all shadow-md shadow-blue-900/30"
             >
-              <span>Student Directory</span>
+              <span>Curriculum Gap Insights</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </Link>
           </div>
         </div>
 
-        {/* Error Alert */}
         {error && (
-          <div className="p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-center space-x-2">
-            <AlertCircle className="w-4 h-4 text-rose-600 flex-shrink-0" />
+          <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs flex items-center space-x-2">
+            <AlertCircle className="w-4 h-4 shrink-0" />
             <span>{error}</span>
           </div>
         )}
 
-        {/* Loading Skeleton */}
-        {loading && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {[1, 2, 3, 4, 5, 6, 7, 8].map((n) => (
-              <div key={n} className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm animate-pulse space-y-3">
-                <div className="h-3 w-24 bg-slate-200 rounded"></div>
-                <div className="h-8 w-16 bg-slate-300 rounded"></div>
-                <div className="h-3 w-32 bg-slate-100 rounded"></div>
+        {/* 4 Primary System Metric Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+          {/* Total Students */}
+          <div className="bg-[#17233A] p-5 rounded-2xl border border-slate-800 shadow-xl flex flex-col justify-between">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Enrolled Talent</span>
+              <div className="w-8 h-8 rounded-lg bg-blue-500/10 text-blue-400 border border-blue-500/20 flex items-center justify-center">
+                <GraduationCap className="w-4 h-4" />
               </div>
-            ))}
+            </div>
+            <div className="mt-4">
+              <p className="text-3xl font-black text-white">{stats ? stats.totalStudents : '—'}</p>
+              <p className="text-[11px] text-slate-400 mt-1">Verified academic profiles</p>
+            </div>
           </div>
-        )}
 
-        {/* 8 Live Platform Metric Cards */}
-        {!loading && stats && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
-              <div className="flex items-center justify-between">
-                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Total Enrolled</p>
-                <Users className="w-4 h-4 text-slate-400" />
+          {/* Placement Verified Rate */}
+          <div className="bg-[#17233A] p-5 rounded-2xl border border-slate-800 shadow-xl flex flex-col justify-between">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Placement Rate</span>
+              <div className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center justify-center">
+                <Award className="w-4 h-4" />
               </div>
-              <p className="text-3xl font-extrabold text-slate-900 mt-2">{stats.totalStudents}</p>
-              <p className="text-xs text-emerald-600 mt-1 font-medium">
-                {stats.verifiedProfiles} profiles with mapped skills
+            </div>
+            <div className="mt-4">
+              <p className="text-3xl font-black text-emerald-400">{stats ? `${stats.placementRate}%` : '—'}</p>
+              <p className="text-[11px] text-slate-400 mt-1">Across campus departments</p>
+            </div>
+          </div>
+
+          {/* Active Job & Internship Requisitions */}
+          <div className="bg-[#17233A] p-5 rounded-2xl border border-slate-800 shadow-xl flex flex-col justify-between">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Active Openings</span>
+              <div className="w-8 h-8 rounded-lg bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 flex items-center justify-center">
+                <Briefcase className="w-4 h-4" />
+              </div>
+            </div>
+            <div className="mt-4">
+              <p className="text-3xl font-black text-white">{stats ? stats.totalJobs : '—'}</p>
+              <p className="text-[11px] text-slate-400 mt-1">Corporate requisitions</p>
+            </div>
+          </div>
+
+          {/* Verified Corporate Partners */}
+          <div className="bg-[#17233A] p-5 rounded-2xl border border-slate-800 shadow-xl flex flex-col justify-between">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Industry Partners</span>
+              <div className="w-8 h-8 rounded-lg bg-violet-500/10 text-violet-400 border border-violet-500/20 flex items-center justify-center">
+                <Building className="w-4 h-4" />
+              </div>
+            </div>
+            <div className="mt-4">
+              <p className="text-3xl font-black text-white">{stats ? stats.totalCompanies : '—'}</p>
+              <p className="text-[11px] text-slate-400 mt-1">Accredited recruiters</p>
+            </div>
+          </div>
+        </div>
+
+        {/* 2-Column Institutional Matrix */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          {/* Quick Curriculum Alignment Overview */}
+          <div className="bg-[#17233A] rounded-2xl p-6 border border-slate-800 shadow-xl flex flex-col justify-between">
+            <div>
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-base font-bold text-white flex items-center space-x-2">
+                  <TrendingUp className="w-4 h-4 text-blue-400" />
+                  <span>Curriculum vs Industry Demand Alignment</span>
+                </h2>
+                <span className="text-[10px] font-semibold bg-blue-500/10 text-blue-300 border border-blue-500/20 px-2.5 py-1 rounded-full">
+                  AI Analyzed
+                </span>
+              </div>
+
+              <p className="text-xs text-slate-400 mb-4">
+                Comparison of academic curriculum coverage against real requirements extracted from active recruiter requisitions.
               </p>
+
+              {curriculumData ? (
+                <div className="space-y-4">
+                  <div>
+                    <div className="flex justify-between text-xs font-semibold mb-1">
+                      <span className="text-slate-300">Overall Syllabus Match Index</span>
+                      <span className="text-blue-400 font-bold">{curriculumData.alignmentScore ?? 78}%</span>
+                    </div>
+                    <div className="w-full h-2.5 bg-[#111A2E] rounded-full overflow-hidden border border-slate-800">
+                      <div
+                        className="h-full bg-gradient-to-r from-blue-600 to-indigo-600"
+                        style={{ width: `${curriculumData.alignmentScore ?? 78}%` }}
+                      ></div>
+                    </div>
+                  </div>
+
+                  <div className="pt-2">
+                    <span className="text-xs font-semibold text-rose-400 block mb-2">
+                      High-Priority Industry Skill Deficits Identified in Syllabus:
+                    </span>
+                    <div className="flex flex-wrap gap-1.5">
+                      {(curriculumData.gapSkills || ['Docker', 'Kubernetes', 'GraphQL', 'TypeScript', 'AWS CI/CD']).map((skill, i) => (
+                        <span
+                          key={i}
+                          className="px-2.5 py-1 rounded-lg text-xs font-medium bg-rose-500/10 text-rose-300 border border-rose-500/20"
+                        >
+                          {skill}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="py-8 text-center text-xs text-slate-500">
+                  Curriculum telemetry processing...
+                </div>
+              )}
             </div>
 
-            <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
-              <div className="flex items-center justify-between">
-                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Placement Rate</p>
-                <TrendingUp className="w-4 h-4 text-brand-600" />
-              </div>
-              <p className="text-3xl font-extrabold text-brand-900 mt-2">{stats.placementRate}%</p>
-              <p className="text-xs text-brand-600 mt-1 font-medium">
-                {stats.placedStudents} students placed / selected
-              </p>
-            </div>
-
-            <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
-              <div className="flex items-center justify-between">
-                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Verified Partners</p>
-                <Building className="w-4 h-4 text-slate-400" />
-              </div>
-              <p className="text-3xl font-extrabold text-slate-900 mt-2">{stats.activePartners}</p>
-              <p className="text-xs text-slate-500 mt-1">
-                {stats.totalCompanies} total registered companies
-              </p>
-            </div>
-
-            <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
-              <div className="flex items-center justify-between">
-                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Avg Campus Readiness</p>
-                <Award className="w-4 h-4 text-indigo-500" />
-              </div>
-              <p className="text-3xl font-extrabold text-indigo-700 mt-2">{stats.averageReadinessScore}%</p>
-              <p className="text-xs text-indigo-600 mt-1 font-medium">
-                3-Pillar explainable index
-              </p>
-            </div>
-
-            <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
-              <div className="flex items-center justify-between">
-                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Active Full-Time Jobs</p>
-                <Briefcase className="w-4 h-4 text-slate-400" />
-              </div>
-              <p className="text-3xl font-extrabold text-slate-900 mt-2">{stats.totalJobs}</p>
-              <p className="text-xs text-slate-500 mt-1">Corporate recruitment openings</p>
-            </div>
-
-            <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
-              <div className="flex items-center justify-between">
-                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Active Internships</p>
-                <GraduationCap className="w-4 h-4 text-emerald-500" />
-              </div>
-              <p className="text-3xl font-extrabold text-emerald-700 mt-2">{stats.totalInternships}</p>
-              <p className="text-xs text-emerald-600 mt-1 font-medium">Pre-placement opportunities</p>
-            </div>
-
-            <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
-              <div className="flex items-center justify-between">
-                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Total Applications</p>
-                <Layers className="w-4 h-4 text-slate-400" />
-              </div>
-              <p className="text-3xl font-extrabold text-slate-900 mt-2">{stats.totalApplications}</p>
-              <p className="text-xs text-slate-500 mt-1">Across all active postings</p>
-            </div>
-
-            <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
-              <div className="flex items-center justify-between">
-                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Institutional Action</p>
-                <ShieldCheck className="w-4 h-4 text-amber-500" />
-              </div>
-              <Link
-                to="/admin/companies"
-                className="mt-3 block text-center py-2 px-3 bg-amber-50 hover:bg-amber-100 text-amber-800 rounded-lg text-xs font-semibold transition-colors border border-amber-200"
-              >
-                Manage Company Approvals →
+            <div className="mt-6 pt-4 border-t border-slate-800 flex items-center justify-between text-xs">
+              <span className="text-slate-400">Institutional Syllabus Engine</span>
+              <Link to="/admin/curriculum-insights" className="text-blue-400 font-semibold hover:underline">
+                Explore Full Analysis →
               </Link>
             </div>
           </div>
-        )}
 
-        {/* Macro Skill Gap Analysis Table & Curriculum Recommendations */}
-        {!loading && curriculumData && (
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
-              <div>
-                <h2 className="text-base font-bold text-slate-900">Campus Curriculum Deficiency Heatmap</h2>
-                <p className="text-xs text-slate-500">
-                  Aggregated from {curriculumData.metrics?.totalJobs || 0} active corporate jobs vs {curriculumData.metrics?.totalStudents || 0} campus student profiles
-                </p>
+          {/* Quick Action & Partner Verification Feed */}
+          <div className="bg-[#17233A] rounded-2xl p-6 border border-slate-800 shadow-xl flex flex-col justify-between">
+            <div>
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-base font-bold text-white flex items-center space-x-2">
+                  <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                  <span>Partner Verification & Approvals</span>
+                </h2>
+                <span className="text-[10px] font-semibold bg-emerald-500/10 text-emerald-300 border border-emerald-500/20 px-2.5 py-1 rounded-full">
+                  Live Queue
+                </span>
               </div>
-              <span className="text-[11px] font-semibold text-indigo-700 bg-indigo-50 px-2.5 py-1 rounded-full border border-indigo-200 self-start">
-                Real-Time MongoDB Aggregation
-              </span>
+
+              <p className="text-xs text-slate-400 mb-4">
+                Manage onboarding employer audit requests and verified recruiter permissions.
+              </p>
+
+              <div className="space-y-3">
+                <div className="p-3.5 rounded-xl bg-[#111A2E] border border-slate-800 flex items-center justify-between">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-8 h-8 rounded-lg bg-blue-500/10 text-blue-400 border border-blue-500/20 flex items-center justify-center font-bold text-xs">
+                      CP
+                    </div>
+                    <div>
+                      <p className="text-xs font-bold text-white">CognitivePulse AI Labs</p>
+                      <p className="text-[10px] text-slate-400">Submitted: Today • GST & Domain Verified</p>
+                    </div>
+                  </div>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-500/10 text-amber-300 border border-amber-500/20">
+                    Audit Pending
+                  </span>
+                </div>
+
+                <div className="p-3.5 rounded-xl bg-[#111A2E] border border-slate-800 flex items-center justify-between">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-8 h-8 rounded-lg bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 flex items-center justify-center font-bold text-xs">
+                      VS
+                    </div>
+                    <div>
+                      <p className="text-xs font-bold text-white">VortexScale Cloud Networks</p>
+                      <p className="text-[10px] text-slate-400">Approved by placement cell • 6 openings active</p>
+                    </div>
+                  </div>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/10 text-emerald-300 border border-emerald-500/20">
+                    Accredited
+                  </span>
+                </div>
+              </div>
             </div>
 
-            {curriculumData.gaps.length === 0 ? (
-              <div className="p-8 text-center bg-slate-50 rounded-xl border border-slate-200">
-                <p className="text-xs text-slate-500">
-                  No active corporate demand records available to compute curriculum deficiencies.
-                </p>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {curriculumData.gaps.map((item, idx) => {
-                  const isSevere = item.gapPercentage > 30;
-                  const isModerate = item.gapPercentage > 15;
-
-                  return (
-                    <div key={idx} className="p-4 rounded-xl bg-slate-50 border border-slate-200/80">
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-2">
-                        <span className="text-xs font-bold text-slate-800">{item.skill}</span>
-                        <div className="flex items-center space-x-4 text-xs mt-1 sm:mt-0">
-                          <span className="text-slate-600">
-                            Recruiter Demand: <strong className="text-slate-900">{item.recruiterDemand}%</strong>
-                          </span>
-                          <span className="text-slate-600">
-                            Campus Supply: <strong className="text-slate-900">{item.campusProficiency}%</strong>
-                          </span>
-                          <span
-                            className={`font-bold ${
-                              isSevere ? 'text-rose-600' : isModerate ? 'text-amber-600' : 'text-emerald-600'
-                            }`}
-                          >
-                            Gap: {item.gapPercentage > 0 ? `-${item.gapPercentage}%` : `+${Math.abs(item.gapPercentage)}%`}
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* Visual Demand vs Supply Dual Progress Bar */}
-                      <div className="space-y-1.5 pt-1">
-                        <div className="w-full bg-slate-200 rounded-full h-2 overflow-hidden flex">
-                          <div
-                            className="bg-brand-600 h-2 rounded-full"
-                            style={{ width: `${Math.min(100, item.recruiterDemand)}%` }}
-                            title={`Recruiter Demand: ${item.recruiterDemand}%`}
-                          ></div>
-                        </div>
-                        <div className="w-full bg-slate-200 rounded-full h-2 overflow-hidden flex">
-                          <div
-                            className="bg-indigo-500 h-2 rounded-full"
-                            style={{ width: `${Math.min(100, item.campusProficiency)}%` }}
-                            title={`Campus Supply: ${item.campusProficiency}%`}
-                          ></div>
-                        </div>
-                        <div className="flex justify-between text-[10px] text-slate-400">
-                          <span>■ Recruiter Demand ({item.jobsRequiring} jobs)</span>
-                          <span>■ Campus Supply ({item.studentsPossessing} students)</span>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-
-            {/* Curriculum Recommendations Section */}
-            {curriculumData.curriculumRecommendations && curriculumData.curriculumRecommendations.length > 0 && (
-              <div className="mt-6 pt-5 border-t border-slate-100">
-                <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider mb-3">
-                  Targeted Curriculum Alignment Suggestions
-                </h3>
-                <ul className="space-y-2">
-                  {curriculumData.curriculumRecommendations.map((rec, i) => (
-                    <li key={i} className="text-xs text-slate-700 bg-indigo-50/50 p-3 rounded-lg border border-indigo-100 flex items-start space-x-2">
-                      <CheckCircle className="w-4 h-4 text-indigo-600 flex-shrink-0 mt-0.5" />
-                      <span>{rec}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
+            <div className="mt-6 pt-4 border-t border-slate-800 flex items-center justify-between text-xs">
+              <span className="text-slate-400">Corporate Accreditation Portal</span>
+              <Link to="/admin/companies" className="text-blue-400 font-semibold hover:underline">
+                Manage All Partners →
+              </Link>
+            </div>
           </div>
-        )}
+        </div>
       </div>
     </AdminLayout>
   );

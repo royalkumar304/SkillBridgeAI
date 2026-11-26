@@ -18,14 +18,13 @@ export default function StudentLayout({ children }) {
   ];
 
   return (
-    <div className="min-h-screen flex flex-col bg-slate-50">
+    <div className="min-h-screen flex flex-col bg-[#0B1020] text-slate-100">
       <Navbar />
-      <div className="flex-1 max-w-7xl w-full mx-auto flex">
-        <Sidebar title="Student Portal" roleLabel="Student" items={navItems} />
-        <main className="flex-1 p-6 md:p-8 overflow-y-auto">{children}</main>
+      <div className="flex-1 max-w-7xl w-full mx-auto flex border-x border-slate-800/80">
+        <Sidebar title="Student Hub" roleLabel="Student" items={navItems} />
+        <main className="flex-1 p-6 md:p-8 overflow-y-auto bg-[#0B1020]">{children}</main>
       </div>
       <Footer />
     </div>
   );
 }
-
