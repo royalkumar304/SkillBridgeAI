@@ -121,19 +121,20 @@ async function runSuite() {
 
   // Cleanup
   await User.deleteMany({ email: studentEmail });
+  await mongoose.connection.close(true);
 
   console.log('\n================================================================');
   console.log(`CSRF PROTECTION SUITE: ${passed} PASSED, ${failed} FAILED`);
   console.log('================================================================\n');
 
   if (failed > 0) {
-    process.exit(1);
+    process.exitCode = 1;
   } else {
-    process.exit(0);
+    process.exitCode = 0;
   }
 }
 
 runSuite().catch((err) => {
   console.error('[FATAL] CSRF Suite error:', err);
-  process.exit(1);
+  process.exitCode = 1;
 });

@@ -149,6 +149,15 @@ export const api = {
     };
   },
 
+  // ── Legacy/Fallback AI Methods ──────────────────────────────────────────
+  extractSkills: (text) =>
+    request('/students/resume', {
+      method: 'POST',
+      body: JSON.stringify({ text }),
+    }),
+  analyzeGap: (targetRole, skills = []) =>
+    request(`/career/gap-analysis?targetRole=${encodeURIComponent(targetRole)}`),
+
   // ── Authenticated Resume Management ──────────────────────────────────────
   uploadResumePdf: (file) => {
     const formData = new FormData();
@@ -215,6 +224,11 @@ export const api = {
     request('/applications', {
       method: 'POST',
       body: JSON.stringify(payload),
+    }),
+  applyToJob: (jobId) =>
+    request('/applications', {
+      method: 'POST',
+      body: JSON.stringify({ jobId }),
     }),
   getMyApplications: () => request('/applications/my'),
   getJobApplications: (jobId) => request(`/jobs/${jobId}/applications`),

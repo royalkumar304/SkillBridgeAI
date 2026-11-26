@@ -21,6 +21,6 @@ def match_job(payload: JobMatchRequest):
         missing_skills=result["missing_skills"],
         breakdown=MatchBreakdown(**result["breakdown"]),
         recommendation_summary=result["recommendation_summary"],
-        model_version="v1-deterministic-mock"
+        model_version="v1-deterministic-engine"
     )
 

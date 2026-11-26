@@ -29,7 +29,7 @@ export default function StudentDashboard() {
   const [uploading, setUploading] = useState(false);
   const [pdfUploadResult, setPdfUploadResult] = useState(null);
 
-  // Resume text fallback extraction state
+  // Resume text fallback extraction state (deprecated in favor of PDF upload)
   const [resumeText, setResumeText] = useState('');
   const [extractedSkills, setExtractedSkills] = useState([]);
   const [skillDetails, setSkillDetails] = useState([]);
@@ -167,9 +167,15 @@ export default function StudentDashboard() {
   const handleRunGapAnalysis = async (role) => {
     setTargetRole(role);
     try {
-      const res = await api.analyzeGap(role, extractedSkills);
-      if (res.success) {
-        setGapData(res);
+      const res = await api.getSkillGapAnalysis({ targetRole: role });
+      if (res && res.success && res.data) {
+        setGapData({
+          readiness_score: res.data.readinessScore ?? 0,
+          gap_percentage: res.data.gapPercentage ?? 100,
+          acquired_skills: res.data.acquiredSkills || [],
+          missing_critical_skills: res.data.missingSkills || [],
+          recommended_courses: res.data.recommendedCourses || [],
+        });
       }
     } catch (err) {
       console.warn('Gap analysis service unreachable:', err);

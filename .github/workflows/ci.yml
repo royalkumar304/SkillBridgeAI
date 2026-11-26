@@ -53,8 +53,23 @@ jobs:
           PORT: 8000
         run: |
           cd ai-service
-          uvicorn app.main:app --host 127.0.0.1 --port 8000 &
-          sleep 3
+          uvicorn app.main:app --host 127.0.0.1 --port 8000 > ai_service.log 2>&1 &
+
+          # Bounded readiness check for AI microservice (up to 30 seconds)
+          ready=0
+          for i in $(seq 1 30); do
+            if curl -s -f http://127.0.0.1:8000/health > /dev/null; then
+              echo "AI microservice is healthy on port 8000."
+              ready=1
+              break
+            fi
+            sleep 1
+          done
+          if [ $ready -ne 1 ]; then
+            echo "ERROR: AI microservice failed readiness check after 30 seconds."
+            cat ai_service.log
+            exit 1
+          fi
 
       - name: Install Monorepo & Backend Dependencies
         run: |
@@ -66,17 +81,38 @@ jobs:
         run: |
           npm audit --omit=dev
 
-      - name: Run Backend Regression Test Suites (24 Suites)
+      - name: Start Express Backend & Run Regression Tests (24 Suites)
         env:
           NODE_ENV: test
           PORT: 5001
+          MONGO_URI: mongodb://127.0.0.1:27017/skillbridge_ai_test
           MONGODB_URI: mongodb://127.0.0.1:27017/skillbridge_ai_test
           JWT_SECRET: ci_test_jwt_secret_skillbridge_2026_super_secure_key
           CSRF_SIGNING_SECRET: ci_test_csrf_signing_secret_skillbridge_2026_key
           INTERNAL_SERVICE_KEY: ci_internal_test_secret_key_32chars_min
           AI_SERVICE_URL: http://127.0.0.1:8000
+          CLIENT_URL: http://localhost:5173
         run: |
           cd backend
+          node server.js > backend_server.log 2>&1 &
+
+          # Bounded readiness check for backend server (up to 30 seconds)
+          ready=0
+          for i in $(seq 1 30); do
+            if curl -s -f http://127.0.0.1:5001/api/v1/health > /dev/null; then
+              echo "Backend Express API is healthy on port 5001."
+              ready=1
+              break
+            fi
+            sleep 1
+          done
+          if [ $ready -ne 1 ]; then
+            echo "ERROR: Backend server failed readiness check after 30 seconds."
+            cat backend_server.log
+            exit 1
+          fi
+
+          # Run the 24 backend test suites against running services
           npm test
 
   ai-service-tests:

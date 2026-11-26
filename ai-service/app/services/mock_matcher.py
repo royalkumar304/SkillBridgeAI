@@ -57,10 +57,13 @@ def calculate_job_match(
     overall_match = round(skill_match_score * 0.9 + (10.0 if cgpa_eligible else 0.0), 1)
     overall_match = min(100.0, max(0.0, overall_match))
 
+    missing_skills_text = ", ".join(missing_skills)
+    missing_skills_message = f"Missing skills to acquire: {missing_skills_text}." if missing_skills else "All core skills satisfied!"
+
     recommendation = (
         f"Matches {len(matched_skills)} required skill(s). "
         f"{'Eligible' if cgpa_eligible else 'Below CGPA threshold'}. "
-        f"{f'Missing skills to acquire: {', '.join(missing_skills)}.' if missing_skills else 'All core skills satisfied!'}"
+        f"{missing_skills_message}"
     )
 
     return {

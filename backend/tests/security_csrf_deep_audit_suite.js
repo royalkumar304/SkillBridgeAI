@@ -109,16 +109,17 @@ async function runSuite() {
 
   // Clean up
   await User.deleteMany({ email: testEmail });
+  await mongoose.connection.close(true);
 
   console.log('\n================================================================');
   console.log(`DEEP CSRF AUDIT SUITE: ${passed} PASSED, ${failed} FAILED`);
   console.log('================================================================\n');
 
-  if (failed > 0) process.exit(1);
-  else process.exit(0);
+  if (failed > 0) process.exitCode = 1;
+  else process.exitCode = 0;
 }
 
 runSuite().catch((err) => {
   console.error('[FATAL] Deep CSRF Audit Suite error:', err);
-  process.exit(1);
+  process.exitCode = 1;
 });
